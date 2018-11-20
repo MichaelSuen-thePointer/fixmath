@@ -4,12 +4,12 @@
 #include <limits>
 #include <stdexcept>
 
-#ifdef _MSC_VER 
-#include <intrin.h>
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  ifdef _WIN64
 int clzll(uint64_t value)
 {
 	unsigned long leading_zero = 0;
-
 	if (_BitScanReverse64(&leading_zero, value))
 	{
 		return 63 - leading_zero;
@@ -20,6 +20,27 @@ int clzll(uint64_t value)
 		return 64;
 	}
 }
+#  elif _WIN32
+int clzll(uint64_t value)
+{
+	unsigned long leading_zero = 0;
+	if (_BitScanReverse(&leading_zero, (unsigned long)(value >> 32)))
+	{
+		return 31 - leading_zero;
+	}
+	else if (_BitScanReverse(&leading_zero, (unsigned long)value))
+	{
+		return 63 - leading_zero;
+	}
+	else
+	{
+		// Same remarks as above
+		return 64;
+	}
+}
+#  else
+#    error "platform not supported"
+#  endif
 #else
 int clzll(uint64_t value)
 {
@@ -89,28 +110,42 @@ pair<int64_t, uint64_t> int128_mul(int64_t _a, int64_t _b)
 {
 	int64_t a = abs(_a);
 	int64_t b = abs(_b);
-	uint64_t ahi = (uint64_t)a >> 32;
-	uint64_t alo = (uint32_t)a;
-	uint64_t bhi = (uint64_t)b >> 32;
-	uint64_t blo = (uint32_t)b;
+	using int_limits = std::numeric_limits<int32_t>;
+	uint64_t rhi, rlo;
+	if (a <= int_limits::max() && b <= int_limits::max())
+	{
+		rhi = 0;
+		rlo = a * b;
+	}
+	else if ((a & 0xFFFFFFFFu) == 0 && (b & 0xFFFFFFFFu) == 0)
+	{
+		rhi = (a >> 32) * (b >> 32);
+		rlo = 0;
+	}
+	else
+	{
+		uint64_t ahi = (uint64_t)a >> 32;
+		uint64_t alo = (uint32_t)a;
+		uint64_t bhi = (uint64_t)b >> 32;
+		uint64_t blo = (uint32_t)b;
 
-	auto alo_blo = alo * blo;
-	auto alo_bhi = alo * bhi;
-	auto ahi_blo = ahi * blo;
-	auto ahi_bhi = ahi * bhi;
+		auto alo_blo = alo * blo;
+		auto alo_bhi = alo * bhi;
+		auto ahi_blo = ahi * blo;
+		auto ahi_bhi = ahi * bhi;
 
-	auto ahi_blo_p_alo_bhi = ahi_blo;
-	ahi_blo_p_alo_bhi += alo_bhi;
-	auto carry1 = ahi_blo_p_alo_bhi < ahi_blo;
+		auto ahi_blo_p_alo_bhi = ahi_blo;
+		ahi_blo_p_alo_bhi += alo_bhi;
+		auto carry1 = ahi_blo_p_alo_bhi < ahi_blo;
 
-	auto rhi = ahi_bhi + ((uint64_t)carry1 << 32);
+		rhi = ahi_bhi + ((uint64_t)carry1 << 32);
 
-	auto rlo = alo_blo;
-	rlo += ahi_blo_p_alo_bhi << 32;
-	auto carry2 = rlo < alo_blo;
+		rlo = alo_blo;
+		rlo += ahi_blo_p_alo_bhi << 32;
+		auto carry2 = rlo < alo_blo;
 
-	rhi += carry2 + (ahi_blo_p_alo_bhi >> 32);
-
+		rhi += carry2 + (ahi_blo_p_alo_bhi >> 32);
+	}
 	if (_a < 0 && _b < 0 || _a > 0 && _b > 0)
 	{
 		return { rhi, rlo };
@@ -148,7 +183,7 @@ Fix32 operator*(Fix32 a, Fix32 b)
 	{
 		return { 0 };
 	}
-	if (auto abs_value = abs(b._value); (abs_value & (abs_value - 1)) == 0)
+	if (uint64_t abs_value = abs(b._value); (abs_value & (abs_value - 1)) == 0)
 	{
 		auto shamt = 31 - clzll(abs_value);
 		auto r_value = a._value;
@@ -175,7 +210,7 @@ Fix32 operator/(Fix32 a, Fix32 b)
 	{
 		throw std::runtime_error("division by 0");
 	}
-	if (auto abs_value = abs(b._value); (abs_value & (abs_value - 1)) == 0)
+	if (uint64_t abs_value = abs(b._value); (abs_value & (abs_value - 1)) == 0)
 	{
 		auto shamt = 31 - clzll(abs_value);
 		auto r_value = a._value;
@@ -242,7 +277,70 @@ bool operator!=(Fix32 a, Fix32 b)
 	return a.compare(b) != 0;
 }
 
-Fix32 Fix32::from_float(float value)
+Fix32 Fix32::from_integer(int value)
+{
+	return Fix32(value);
+}
+
+Fix32 Fix32::from_integer(uint32_t value)
+{
+	return Fix32(value);
+}
+
+Fix32 Fix32::from_integer(int64_t value)
+{
+	return Fix32(value);
+}
+
+Fix32 Fix32::from_integer(uint64_t value)
+{
+	return Fix32(value);
+}
+
+Fix32 Fix32::from_real(float value)
+{
+	using flimits = std::numeric_limits<float>;
+	if (value != value)
+	{
+		throw std::runtime_error("value is NAN");
+	}
+	if (value == 0)
+	{
+		return { 0 };
+	}
+	if (value == 1)
+	{
+		return { 1 };
+	}
+	if (value == -1)
+	{
+		return { -1 };
+	}
+	if (value == flimits::infinity())
+	{
+		return 0;
+	}
+	uint32_t ivalue = reinterpret_cast<uint32_t&>(value);
+	bool sign = !!(ivalue >> 31);
+	int32_t exp = (ivalue >> 23) & 0xFF;
+	uint32_t frac = ivalue & 0x7F'FFFF;
+	if (exp != 0)
+	{
+		exp -= 127;
+		frac |= 0x80'0000;
+		int64_t raw = frac;
+		auto shift_amount = 32 - 23 + exp;
+		if (shift_amount > 63 || shift_amount < -63)
+		{
+			return { 0 };
+		}
+		raw = shift_amount < 0 ? raw >> -shift_amount : raw << shift_amount;
+		return Fix32::from_raw(sign ? -raw : raw);
+	}
+	return { 0 };
+}
+
+Fix32 Fix32::from_real(double value)
 {
 	if (value != value)
 	{
@@ -260,26 +358,60 @@ Fix32 Fix32::from_float(float value)
 	{
 		return { -1 };
 	}
-	uint32_t ivalue = reinterpret_cast<uint32_t&>(value);
-	bool sign = !!(ivalue & 0x8000'0000u);
-	int32_t exp = (ivalue >> 23) & 0xFF;
-	uint32_t frac = ivalue & 0x7F'FFFF;
+
+	uint64_t ivalue = reinterpret_cast<uint64_t&>(value);
+	bool sign = !!(ivalue >> 63);
+	int32_t exp = (ivalue >> 53) & 0x7FF;
+	uint64_t frac = ivalue & 0xF'FFFF'FFFF'FFFFull;
 	if (exp != 0)
 	{
-		exp -= 127;
-		frac |= 0x80'0000;
-		int64_t raw = (uint64_t)frac << 9;
-		if (exp > 63 || exp < -63)
+		exp -= 1023;
+		frac |= 0x10'0000'0000'0000;
+		int64_t raw = frac;
+		auto shift_amount = 32 - 52 + exp;
+		if (shift_amount > 63 || shift_amount < -63)
 		{
 			return { 0 };
 		}
-		raw = exp < 0 ? raw >> -exp : raw << exp;
+		raw = shift_amount < 0 ? raw >> -shift_amount : raw << shift_amount;
 		return Fix32::from_raw(sign ? -raw : raw);
 	}
-	return 0;
+	return { 0 };
 }
 
-float Fix32::to_float() const
+Fix32::Fix32(int value)
+	: _value((int64_t)value << 32)
+{
+}
+
+Fix32::Fix32(uint32_t value)
+	: _value((int64_t)value << 32)
+{
+}
+
+Fix32::Fix32(int64_t value)
+	: _value(value << 32)
+{
+}
+
+Fix32::Fix32(uint64_t value)
+	: _value(value << 32)
+{
+}
+
+Fix32::Fix32(float value)
+	: Fix32(Fix32::from_real(value))
+{
+}
+
+Fix32::Fix32(double value)
+	: Fix32(Fix32::from_real(value))
+{
+}
+
+
+template<>
+float Fix32::to_real<float>() const
 {
 	auto value = _value;
 	if (value == 0)
@@ -302,8 +434,41 @@ float Fix32::to_float() const
 		value <<= -shamt;
 	}
 
-	auto ivalue = ((uint32_t)sign << 31) | (value & 0x7F'FFFF) | (exp << 23);
+	auto ivalue = (((uint32_t)sign) << 31) | ((uint32_t)value & 0x7F'FFFF) | (exp << 23);
 	return reinterpret_cast<float&>(ivalue);
+}
+template<>
+double Fix32::to_real<double>() const
+{
+	auto value = _value;
+	if (value == 0)
+	{
+		return 0;
+	}
+	bool sign = value < 0;
+	value = sign ? -value : value;
+	auto clz = clzll(value) + 1;
+	auto exp = 32 - clz;
+	exp += 1023;
+
+	auto shamt = 64 - clz - 52;
+	if (shamt > 0)
+	{
+		value >>= shamt;
+	}
+	else
+	{
+		value <<= -shamt;
+	}
+
+	auto ivalue = (((uint64_t)sign) << 63) | (value & 0xF'FFFF'FFFF'FFFFull) | ((uint64_t)exp << 52);
+	return reinterpret_cast<double&>(ivalue);
+}
+
+template<>
+long double Fix32::to_real<long double>() const
+{
+	return (long double)_value / std::numeric_limits<uint32_t>::max();
 }
 
 int Fix32::compare(Fix32 b) const
@@ -312,3 +477,10 @@ int Fix32::compare(Fix32 b) const
 	if (this->_value < b._value) { return -1; }
 	return 0;
 }
+
+const Fix32 Fix32::MAX{ Fix32::from_raw(std::numeric_limits<int64_t>::max()) };
+const Fix32 Fix32::MIN{ Fix32::from_raw(std::numeric_limits<int64_t>::min()) };
+
+template float Fix32::to_real<float>() const;
+template double Fix32::to_real<double>() const;
+template long double Fix32::to_real<long double>() const;
