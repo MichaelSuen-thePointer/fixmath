@@ -51,27 +51,26 @@ int clzll(uint64_t value)
 using std::pair;
 using std::tuple;
 
-pair<uint64_t, uint64_t> negate(int64_t high, uint64_t low)
+pair<uint64_t, uint64_t> negate(uint64_t low, int64_t high)
 {
-	auto old_l = ~low;
-	auto l = old_l + 1;
-	auto h = ~(uint64_t)high;
-	h += l < old_l;
-	return { h, l };
+	uint64_t l = -(int64_t)low;
+	uint64_t h = low != 0;
+	h = -high - h;
+	return { l, h };
 }
 
-pair<uint64_t, uint64_t> abs(int64_t high, uint64_t low)
+pair<uint64_t, uint64_t> abs(uint64_t low, int64_t high)
 {
 	if (high < 0)
 	{
-		return negate(high, low);
+		return negate(low, high);
 	}
-	return { (uint64_t)high, low };
+	return { low, (uint64_t)high };
 }
 
-tuple<int64_t, uint64_t, int64_t> int128_div_rem(int64_t high, uint64_t low, int64_t divisor)
+tuple<uint64_t, int64_t, int64_t> int128_div_rem(uint64_t low, int64_t high, int64_t divisor)
 {
-	auto[abs_high, abs_low] = abs(high, low);
+	auto[abs_low, abs_high] = abs(low, high);
 	auto abs_divisor = abs(divisor);
 
 	auto quotient_high = abs_high / abs_divisor;
@@ -93,20 +92,20 @@ tuple<int64_t, uint64_t, int64_t> int128_div_rem(int64_t high, uint64_t low, int
 	}
 	if ((high < 0 && divisor < 0) || (high > 0 && divisor > 0))
 	{
-		return { quotient_high, quotient_low, (int64_t)copy_rem };
+		return { quotient_low, quotient_high, (int64_t)copy_rem };
 	}
 	if (high < 0)
 	{
-		return tuple_cat(negate(quotient_high, quotient_low), std::make_tuple(-(int64_t)copy_rem));
+		return tuple_cat(negate(quotient_low, quotient_high), std::make_tuple(-(int64_t)copy_rem));
 	}
 	if (divisor < 0)
 	{
-		return tuple_cat(negate(quotient_high, quotient_low), std::make_tuple((int64_t)copy_rem));
+		return tuple_cat(negate(quotient_low, quotient_high), std::make_tuple((int64_t)copy_rem));
 	}
-	return { quotient_high, quotient_low, (int64_t)copy_rem };
+	return {  quotient_low, quotient_high, (int64_t)copy_rem };
 }
 
-pair<int64_t, uint64_t> int128_mul(int64_t _a, int64_t _b)
+pair<uint64_t, int64_t> int128_mul(int64_t _a, int64_t _b)
 {
 	int64_t a = abs(_a);
 	int64_t b = abs(_b);
@@ -148,14 +147,14 @@ pair<int64_t, uint64_t> int128_mul(int64_t _a, int64_t _b)
 	}
 	if (_a < 0 && _b < 0 || _a > 0 && _b > 0)
 	{
-		return { rhi, rlo };
+		return { rlo, rhi };
 	}
-	return negate(rhi, rlo);
+	return negate(rlo, rhi);
 }
 
 int64_t shl32_div(int64_t a, int64_t b)
 {
-	auto[hi, lo, rem] = int128_div_rem(a >> 32, a << 32, b);
+	auto[lo, hi, rem] = int128_div_rem(a << 32, a >> 32, b);
 	(void)hi;
 	(void)rem;
 	return lo;
@@ -163,7 +162,7 @@ int64_t shl32_div(int64_t a, int64_t b)
 
 int64_t mul_shr32(int64_t a, int64_t b)
 {
-	auto[hi, lo] = int128_mul(a, b);
+	auto[lo, hi] = int128_mul(a, b);
 	return (hi << 32) | (lo >> 32);
 }
 
