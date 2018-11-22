@@ -66,9 +66,9 @@ BENCHMARK(boost_int128_mul)->Apply(mul128_arguments_applier);
 
 tuple<uint64_t, int64_t, int64_t> int128_div_rem(uint64_t low, int64_t high, int64_t divisor);
 
-pair<int128_t, int128_t> int128_div_rem2(int128_t a, int64_t b)
+int128_t int128_div_rem2(int128_t a, int64_t b)
 {
-	return { a / b, a % b };
+	return a / b;
 }
 
 void div_rem128_arguments_applier(benchmark::internal::Benchmark* b)
