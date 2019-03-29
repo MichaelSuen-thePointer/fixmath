@@ -20,6 +20,7 @@ Named Fix**32**, but its 64 bit wide.
 1. Test cases on comparison
 1. Test cases on converting from/to floating points
 1. Unary operators
+1. **Rethinking rounding behavior**
 1. Math function implementation: sin, cos, log, exp...
 1. Test cases on math functions
 1. **Unsafe version**: Overflow unaware and only 0/0 produces NaN
