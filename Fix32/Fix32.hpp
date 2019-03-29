@@ -1,21 +1,27 @@
-#pragma once
 #include <cstdint>
 #include <tuple>
+#include <algorithm>
+#include <iosfwd>
 using std::int64_t;
 using std::uint64_t;
 
-class Fix32
-{
+class Fix32 {
 	int64_t _value = 0;
-	static Fix32 from_raw(int64_t value)
-	{
+	static Fix32 from_raw(int64_t value) {
 		Fix32 r;
 		r._value = value;
 		return r;
 	}
 public:
+	const static Fix32 ZERO;
+	const static Fix32 ONE;
 	const static Fix32 MAX;
 	const static Fix32 MIN;
+	const static Fix32 MAX_INTEGER;
+	const static Fix32 MIN_INTEGER;
+	const static Fix32 POSITIVE_INFINITY;
+	const static Fix32 NEGATIVE_INFINITY;
+	const static Fix32 NOT_A_NUMBER;
 	static Fix32 from_integer(int value);
 	static Fix32 from_integer(uint32_t value);
 	static Fix32 from_integer(int64_t value);
@@ -29,7 +35,13 @@ public:
 	explicit Fix32(uint64_t value);
 	explicit Fix32(float value);
 	explicit Fix32(double value);
-	
+
+	bool is_positive_infinity() const;
+	bool is_negative_infinity() const;
+	bool is_infinity() const;
+	int infinity_sign() const;
+	bool is_nan() const;
+
 	template<class T>
 	T to_real() const;
 
@@ -50,11 +62,12 @@ public:
 	friend bool operator<=(Fix32 a, Fix32 b);
 	friend bool operator==(Fix32 a, Fix32 b);
 	friend bool operator!=(Fix32 a, Fix32 b);
+
+	friend std::ostream& operator<<(std::ostream& os, Fix32 a);
 };
 
 template<class T>
-inline T Fix32::to_real() const
-{
+inline T Fix32::to_real() const {
 	static_assert("T must be one of float, double or long double");
 	return T();
 }
@@ -65,7 +78,3 @@ template<>
 double Fix32::to_real<double>() const;
 template<>
 long double Fix32::to_real<long double>() const;
-
-//extern template float Fix32::to_real<float>() const;
-//extern template double Fix32::to_real<double>() const;
-//extern template long double Fix32::to_real<long double>() const;
