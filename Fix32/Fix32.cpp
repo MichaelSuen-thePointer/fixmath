@@ -5,6 +5,7 @@
 #include <ostream>
 #include <string>
 #include <ostream>
+#include <cassert>
 
 #ifdef _MSC_VER
 #  include <intrin.h>
@@ -35,12 +36,14 @@ int clzll(uint64_t value) {
 #  endif
 #  define likely(expr)    (expr)
 #  define unlikely(expr)  (expr)
+#  define assume(cond)
 #else
 int clzll(uint64_t value) {
 	return __builtin_clzll(value);
 }
 #  define likely(expr)    (__builtin_expect(!!(expr), 1))
 #  define unlikely(expr)  (__builtin_expect(!!(expr), 0))
+#  define assume(cond)    do { if (!(cond)) __builtin_unreachable(); } while (0)
 #endif
 
 using std::pair;
@@ -63,43 +66,63 @@ pair<uint64_t, uint64_t> abs(uint64_t low, int64_t high) {
 }
 
 tuple<uint64_t, int64_t, int64_t> int128_div_rem(uint64_t low, int64_t high, int64_t divisor) {
-	auto[abs_low, abs_high] = abs(low, high);
+	assume(divisor != 0);
 	auto abs_divisor = std::abs(divisor);
+	auto[abs_low, abs_high] = abs(low, high);
 	uint64_t quotient_high = 0, quotient_low = 0, remainder = 0;
-	if (high == 0) {
+	if (abs_high == 0) { // 64bit divrem 64bit
 		quotient_low = abs_low / abs_divisor;
 		remainder = abs_low % abs_divisor;
-	} else {
-		quotient_high = abs_high / abs_divisor;
-		remainder = abs_high % abs_divisor;
-		if (remainder == 0) {
-			quotient_low = abs_low / abs_divisor;
-			remainder = abs_low % abs_divisor;
+	} else if ((abs_divisor & (abs_divisor - 1)) == 0) { // divrem by power of 2
+		remainder = abs_low & (abs_divisor - 1);
+		if (abs_divisor == 1) {
+			quotient_high = abs_high;
+			quotient_low = abs_low;
 		} else {
-			auto msb = clzll(remainder);
-			quotient_low = 0;
-			auto copy_low = abs_low;
-
-			int bits_remain = 64;
-			while (bits_remain) {
-				auto new_dividend = (remainder << msb) | (copy_low >> (64 - msb));
-				auto new_quo = new_dividend / abs_divisor;
-				remainder = new_dividend % abs_divisor;
-				bits_remain -= msb;
-				quotient_low |= new_quo << bits_remain;
-				copy_low <<= msb;
-				if (remainder == 0 && bits_remain) {
-					new_dividend = copy_low >> (64 - bits_remain);
-					new_quo = new_dividend / abs_divisor;
-					remainder = new_dividend % abs_divisor;
-					quotient_low |= new_quo;
-					break;
-				}
-				msb = std::min(bits_remain, clzll(remainder));
-			}
+			auto sr = 63 - clzll(abs_divisor);
+			quotient_high = abs_high >> sr;
+			quotient_low = (abs_high << (64 - sr)) | (abs_low >> sr);
 		}
+	} else {
+		uint64_t remainder_high = 0;
+		uint64_t remainder_low = 0;
+		auto sr = 1 + 64 + clzll(abs_divisor) - clzll(abs_high);
+		if (sr == 64) {
+			quotient_low = 0;
+			quotient_high = abs_low;
+			remainder_high = 0;
+			remainder_low = abs_high;
+		} else if (sr < 64) {
+			quotient_low = 0;
+			quotient_high = abs_low << (64 - sr);
+			remainder_high = abs_high >> sr;
+			remainder_low = (abs_high << (64 - sr)) | (abs_low >> sr);
+		} else {
+			quotient_low = abs_low << (128 - sr);
+			quotient_high = (abs_high << (128 - sr)) | (abs_low >> (sr - 64));
+			remainder_high = 0;
+			remainder_low = abs_high >> (sr - 64);
+		}
+		uint32_t carry = 0;
+		for (; sr > 0; --sr) {
+			remainder_high = (remainder_high << 1) | (remainder_low >> 63);
+			remainder_low = (remainder_low << 1) | (quotient_high >> 63);
+			quotient_high = (quotient_high << 1) | (quotient_low >> 63);
+			quotient_low = (quotient_low << 1) | carry;
+
+			int64_t s = remainder_high > 0 ? -1 : (int64_t)(abs_divisor - remainder_low - 1) >> 63;
+			carry = s & 1;
+			auto old_remainder_low = remainder_low;
+			remainder_low -= abs_divisor & s;
+			remainder_high -= old_remainder_low < remainder_low;
+		}
+		quotient_high = (quotient_high << 1) | (quotient_low >> 63);
+		quotient_low = (quotient_low << 1) | carry;
+		remainder = remainder_low;
+		assert(remainder_high == 0);
 	}
-	if ((high < 0 && divisor < 0) || (high > 0 && divisor > 0)) {
+
+	if ((high ^ divisor) >= 0) {
 		return { quotient_low, quotient_high, (int64_t)remainder };
 	}
 	if (high < 0) {
@@ -160,13 +183,16 @@ int64_t shl32_div(int64_t a, int64_t b) {
 
 int64_t mul_shr32(int64_t a, int64_t b) {
 	auto[lo, hi] = int128_mul(a, b);
+	auto mask = (uint64_t)(hi >> 63) >> 32;
+	hi += (lo & mask) != 0;
+	lo += mask;
 	return (hi << 32) | (lo >> 32);
 }
 
-std::pair<int64_t, int64_t> safe_shl32_div(int64_t a, int64_t b) {
+std::pair<int64_t, int> safe_shl32_div(int64_t a, int64_t b) {
 	auto[lo, hi, rem] = int128_div_rem(a << 32, a >> 32, b);
 	(void)rem;
-	int64_t overflow = 0;
+	int overflow = 0;
 	if unlikely((int64_t)lo < i64limits::min() + 2 || (int64_t)lo > i64limits::max() - 1) { //低位溢出
 		overflow = hi >= 0 ? 1 : -1;
 	} else { //高位溢出
@@ -175,11 +201,14 @@ std::pair<int64_t, int64_t> safe_shl32_div(int64_t a, int64_t b) {
 	return { lo, overflow };
 }
 
-std::pair<int64_t, int64_t> safe_mul_shr32(int64_t a, int64_t b) {
+std::pair<int64_t, int> safe_mul_shr32(int64_t a, int64_t b) {
 	auto[lo, hi] = int128_mul(a, b);
+	auto mask = (uint64_t)(hi >> 63) >> 32;
+	hi += (lo & mask) != 0;
+	lo += mask;
 	lo = (hi << 32) | (lo >> 32);
 	hi >>= 32;
-	int64_t overflow = 0;
+	int overflow = 0;
 	if unlikely((int64_t)lo < i64limits::min() + 2 || (int64_t)lo > i64limits::max() - 1) { //低位溢出
 		overflow = hi >= 0 ? 1 : -1;
 	} else { //高位溢出
