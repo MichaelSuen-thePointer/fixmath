@@ -8,6 +8,11 @@ using std::tuple;
 
 pair<uint64_t, int64_t> int128_mul(int64_t _a, int64_t _b);
 
+struct retval {
+	uint64_t lo;
+	int64_t hi, rem;
+};
+
 using namespace boost::multiprecision;
 int128_t int128_mul2(int64_t a, int64_t b)
 {
@@ -141,5 +146,30 @@ void boost_int128_div_rem(benchmark::State& state)
 }
 
 BENCHMARK(boost_int128_div_rem)->Apply(div_rem128_arguments_applier);
+
+extern "C" retval uint128divrem(uint64_t lo, uint64_t hi, uint64_t div);
+void asm_int128_div_rem(benchmark::State& state)
+{
+	auto max = state.range(0);
+
+	std::uniform_int_distribution<int64_t> uida{ state.range(0), state.range(1) };
+	std::uniform_int_distribution<int64_t> uidb{ state.range(2), state.range(3) };
+	std::uniform_int_distribution<int64_t> uidc{ state.range(4), state.range(5) };
+	for (auto _ : state)
+	{
+		state.PauseTiming();
+		auto a = uida(mtg);
+		auto b = uidb(mtg);
+		auto c = uidc(mtg);
+		while (c == 0)
+		{
+			c = uidc(mtg);
+		}
+		state.ResumeTiming();
+		benchmark::DoNotOptimize(uint128divrem((uint64_t)a, b, c));
+	}
+}
+
+BENCHMARK(asm_int128_div_rem)->Apply(div_rem128_arguments_applier);
 
 BENCHMARK_MAIN();

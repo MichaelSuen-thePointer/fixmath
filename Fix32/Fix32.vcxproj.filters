@@ -29,4 +29,9 @@
       <Filter>资源文件</Filter>
     </Natvis>
   </ItemGroup>
+  <ItemGroup>
+    <MASM Include="int128div.asm">
+      <Filter>源文件</Filter>
+    </MASM>
+  </ItemGroup>
 </Project>
