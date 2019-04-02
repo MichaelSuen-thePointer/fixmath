@@ -147,7 +147,7 @@ void boost_int128_div_rem(benchmark::State& state)
 
 BENCHMARK(boost_int128_div_rem)->Apply(div_rem128_arguments_applier);
 
-extern "C" retval uint128divrem(uint64_t lo, uint64_t hi, uint64_t div);
+extern "C" retval uint128div(uint64_t lo, uint64_t hi, uint64_t div);
 void asm_int128_div_rem(benchmark::State& state)
 {
 	auto max = state.range(0);
@@ -166,7 +166,7 @@ void asm_int128_div_rem(benchmark::State& state)
 			c = uidc(mtg);
 		}
 		state.ResumeTiming();
-		benchmark::DoNotOptimize(uint128divrem((uint64_t)a, b, c));
+		benchmark::DoNotOptimize(uint128div((uint64_t)a, b, c));
 	}
 }
 
