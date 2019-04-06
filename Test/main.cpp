@@ -16,6 +16,11 @@ int128_t make_int128_t(pair<uint64_t, uint64_t> v) {
 	return (((int128_t)(int64_t)hi) << 64) | (int128_t)lo;
 }
 
+int128_t make_uint128_t(pair<uint64_t, uint64_t> v) {
+	auto[lo, hi] = v;
+	return (((uint128_t)(uint64_t)hi) << 64) | (uint128_t)lo;
+}
+
 BOOST_AUTO_TEST_CASE(helper_function_clzll) {
 	int clzll(uint64_t value);
 	BOOST_TEST(clzll(0xFFFF'FFFF'FFFF'FFFF) == 0);
@@ -133,6 +138,46 @@ BOOST_AUTO_TEST_CASE(helper_function_int128_div_rem) {
 		CHECK(lo, hi, div);
 		i++;
 	}
+#undef CHECK
+}
+
+BOOST_AUTO_TEST_CASE(helper_function_shifted_uint64_div) {
+	tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div(uint64_t a, uint64_t b);
+
+#define CHECK(_a, _b) [](uint64_t a, uint64_t b)\
+	{\
+		uint128_t ta = a;\
+		ta <<= 32; \
+		auto quotient = ta / b;\
+		auto remainder = ta % b;\
+		auto [qlo, qhi, rem] = shifted_uint64_div(a, b);\
+		BOOST_TEST(quotient == make_uint128_t({ qlo, qhi }));\
+		BOOST_TEST(remainder == rem);\
+	}(_a, _b)
+	CHECK(0, 1);
+	CHECK(1, 1);
+	CHECK(5, 3);
+	using i64 = std::numeric_limits<int64_t>;
+	using u64 = std::numeric_limits<uint64_t>;
+	CHECK(u64::max(), 1);
+	CHECK(u64::max(), u64::max());
+	CHECK(0, u64::max());
+	CHECK(1, u64::max());
+	CHECK(0x8000'0000'0000'0000, 1);
+	CHECK(0x1234'5678'1234'5678, 0x1234'5678'1234'5679);
+
+	std::mt19937_64 mtg{ 0 };
+	std::uniform_int_distribution<uint64_t> uid{ u64::min(), u64::max() };
+	for (int i = 0; i < 10000; ) {
+		auto a = uid(mtg);
+		auto b = uid(mtg);
+		if (b == 0) {
+			continue;
+		}
+		CHECK(a, b);
+		i++;
+	}
+#undef CHECK
 }
 
 #include "../Fix32/Fix32.hpp"
