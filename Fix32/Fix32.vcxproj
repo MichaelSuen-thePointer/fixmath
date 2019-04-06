@@ -129,7 +129,10 @@
     <Natvis Include="Fix32.natvis" />
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="uint128divmul_x64.asm" />
+    <MASM Include="uint128divmul_x64.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </MASM>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

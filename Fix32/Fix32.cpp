@@ -6,6 +6,7 @@
 #include <string>
 #include <ostream>
 #include <cassert>
+#include <array>
 
 #ifdef _MSC_VER
 #  include <intrin.h>
@@ -50,6 +51,8 @@ using std::pair;
 using std::tuple;
 using i64limits = std::numeric_limits<int64_t>;
 using i32limits = std::numeric_limits<int32_t>;
+using u32limits = std::numeric_limits<uint32_t>;
+using u64limits = std::numeric_limits<uint64_t>;
 
 pair<uint64_t, uint64_t> negate(uint64_t low, int64_t high) {
 	uint64_t l = -(int64_t)low;
@@ -132,6 +135,147 @@ tuple<uint64_t, int64_t, int64_t> int128_div_rem(uint64_t low, int64_t high, int
 		return tuple_cat(negate(quotient_low, quotient_high), std::make_tuple((int64_t)remainder));
 	}
 	return { quotient_low, quotient_high, (int64_t)remainder };
+}
+
+tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div32(uint64_t a, uint32_t b) {
+	uint32_t quo3 = (uint32_t)((a >> 32) / b);
+	uint32_t rem3 = (uint32_t)((a >> 32) % b);
+	uint64_t t = (uint64_t)rem3 << 32 | (uint32_t)a;
+	uint32_t quo2 = (uint32_t)(t / b);
+	uint32_t rem2 = (uint32_t)(t % b);
+	t = (uint64_t)rem2 << 32;
+	uint32_t quo1 = (uint32_t)(t / b);
+	uint32_t rem1 = (uint32_t)(t % b);
+	return { (uint64_t)quo2 << 32 | quo1, quo3, rem1 };
+}
+
+tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div(uint64_t a, uint64_t b) {
+	const unsigned m = 1;
+	const unsigned n = 2;
+	if ((a >> 32) == 0) {
+		return { (a << 32) / b, 0, (a << 32) % b };
+	}
+	if ((b >> 32) == 0) {
+		return shifted_uint64_div32(a, (uint32_t)b);
+	}
+	auto log_d = clzll(b);
+	std::array<uint32_t, 4> u;
+	std::array<uint32_t, 2> v = { (uint32_t)(b << log_d), (uint32_t)(b << log_d >> 32) };
+	if (log_d != 0) {
+		u = { 0, (uint32_t)(a << log_d), (uint32_t)(a << log_d >> 32), (uint32_t)(a >> (64 - log_d)) };
+	} else {
+		u = { 0, (uint32_t)a, (uint32_t)(a >> 32), 0 };
+	}
+	std::array<uint32_t, 4> quotient = {};
+	{
+		const unsigned j = 1;
+		uint64_t a = (uint64_t)u[j + n] << 32 | u[j + n - 1];
+		uint64_t q = a / v[n - 1];
+		uint64_t r = a % v[n - 1];
+		if unlikely(q == u32limits::max() || q * v[n - 2] > (((uint64_t)r << 32) | u[j + n - 2])) {
+			q -= 1;
+			r += v[n - 1];
+		}
+		std::array<uint32_t, 3> qv;
+		{
+			uint64_t t = (uint64_t)v[0] * q;
+			qv[0] = (uint32_t)t;
+			uint32_t temp_carry = (uint32_t)(t >> 32);
+			t = (uint64_t)v[1] * q + temp_carry;
+			qv[1] = (uint32_t)t;
+			temp_carry = (uint32_t)(t >> 32);
+			qv[2] = temp_carry;
+		}
+		bool neg = std::make_tuple(u[3], u[2], u[1]) < std::make_tuple(qv[2], qv[1], qv[0]);
+
+		qv[0] = ~qv[0];
+		qv[1] = ~qv[1];
+		qv[2] = ~qv[2];
+		qv[2] += qv[1] == u32limits::max() && qv[0] == u32limits::max();
+		qv[1] += qv[0] == u32limits::max();
+		qv[0] += 1;
+		{
+			uint64_t t = (uint64_t)u[1] + qv[0];
+			u[1] = (uint32_t)t;
+			uint32_t carry = (uint32_t)(t >> 32);
+			t = (uint64_t)u[2] + qv[1] + carry;
+			u[2] = (uint32_t)t;
+			carry = t >> 32;
+			u[3] += qv[2] + carry;
+		}
+
+		if (neg) {
+			quotient[j] = (uint32_t)(q - 1);
+			{
+				uint64_t t = (uint64_t)u[1] + v[0];
+				u[1] = (uint32_t)t;
+				uint32_t carry = (uint32_t)(t >> 32);
+				t = (uint64_t)u[2] + v[1] + carry;
+				u[2] = (uint32_t)t;
+				carry = t >> 32;
+				u[3] += carry;
+			}
+		} else {
+			quotient[j] = (uint32_t)q;
+		}
+	}
+	{
+		const unsigned j = 0;
+		uint64_t a = (uint64_t)u[j + n] << 32 | u[j + n - 1];
+		uint64_t q = a / v[n - 1];
+		uint64_t r = a % v[n - 1];
+		if unlikely(q == u32limits::max() || q * v[n - 2] > ((uint64_t)r << 32 | u[j + n - 2])) {
+			q -= 1;
+			r += v[n - 1];
+		}
+		std::array<uint32_t, 3> qv;
+		{
+			uint64_t t = (uint64_t)v[0] * q;
+			qv[0] = (uint32_t)t;
+			uint32_t temp_carry = (uint32_t)(t >> 32);
+			t = (uint64_t)v[1] * q + temp_carry;
+			qv[1] = (uint32_t)t;
+			temp_carry = (uint32_t)(t >> 32);
+			qv[2] = temp_carry;
+		}
+		bool neg = std::make_tuple(u[2], u[1], u[0]) < std::make_tuple(qv[2], qv[1], qv[0]);
+
+		qv[0] = ~qv[0];
+		qv[1] = ~qv[1];
+		qv[2] = ~qv[2];
+		qv[2] += qv[1] == u32limits::max() && qv[0] == u32limits::max();
+		qv[1] += qv[0] == u32limits::max();
+		qv[0] += 1;
+		{
+			uint64_t t = (uint64_t)u[0] + qv[0];
+			u[0] = (uint32_t)t;
+			uint32_t carry = (uint32_t)(t >> 32);
+			t = (uint64_t)u[1] + qv[1] + carry;
+			u[1] = (uint32_t)t;
+			carry = t >> 32;
+			u[2] += qv[2] + carry;
+		}
+
+		if (neg) {
+			quotient[j] = (uint32_t)(q - 1);
+			{
+				uint64_t t = (uint64_t)u[0] + v[0];
+				u[0] = (uint32_t)t;
+				uint32_t carry = (uint32_t)(t >> 32);
+				t = (uint64_t)u[1] + v[1] + carry;
+				u[1] = (uint32_t)t;
+				carry = t >> 32;
+				u[2] += carry;
+			}
+		} else {
+			quotient[j] = (uint32_t)q;
+		}
+	}
+	if (log_d) {
+		std::array<uint32_t, 4> remainder = { (u[0] >> log_d) | (u[1] << (32-log_d)), (u[1] >> log_d) | (u[2] << (32 - log_d)), (u[2] >> log_d) | (u[3] << (32 - log_d)), u[3] >> log_d };
+		return { quotient[0] | ((uint64_t)quotient[1] << 32), quotient[2] | ((uint64_t)quotient[3] << 32), remainder[0] | ((uint64_t)remainder[1] << 32) };
+	}
+	return { quotient[0] | (uint64_t)quotient[1] << 32, quotient[2] | (uint64_t)quotient[3] << 32, u[0] | ((uint64_t)u[1] << 32) };
 }
 
 pair<uint64_t, int64_t> int128_mul(int64_t _a, int64_t _b) {
@@ -633,7 +777,7 @@ const Fix32 Fix32::ONE{ Fix32::from_raw(1ll << 32) };
 const Fix32 Fix32::MAX{ Fix32::from_raw(i64limits::max() - 1) };
 const Fix32 Fix32::MIN{ Fix32::from_raw(i64limits::min() + 2) };
 const Fix32 Fix32::MAX_INTEGER{ Fix32::from_raw((int64_t)i32limits::max() << 32) };
-const Fix32 Fix32::MIN_INTEGER{ Fix32::from_raw((int64_t)-i32limits::max() << 32) };
+const Fix32 Fix32::MIN_INTEGER{ Fix32::from_raw((int64_t)((uint64_t)-i32limits::max() << 32)) };
 const Fix32 Fix32::POSITIVE_INFINITY{ Fix32::from_raw(i64limits::max()) };
 const Fix32 Fix32::NEGATIVE_INFINITY{ Fix32::from_raw(i64limits::min() + 1) };
 const Fix32 Fix32::NOT_A_NUMBER{ Fix32::from_raw(i64limits::min()) };

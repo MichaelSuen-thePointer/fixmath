@@ -8,11 +8,6 @@ using std::tuple;
 
 pair<uint64_t, int64_t> int128_mul(int64_t _a, int64_t _b);
 
-struct retval {
-	uint64_t lo;
-	int64_t hi, rem;
-};
-
 using namespace boost::multiprecision;
 int128_t int128_mul2(int64_t a, int64_t b)
 {
@@ -36,8 +31,6 @@ void mul128_arguments_applier(benchmark::internal::Benchmark* b)
 
 void fix32_int128_mul(benchmark::State& state)
 {
-	auto max = state.range(0);
-
 	std::uniform_int_distribution<int64_t> uida{ state.range(0), state.range(1) };
 	std::uniform_int_distribution<int64_t> uidb{ state.range(2), state.range(3) };
 	for (auto _ : state)
@@ -46,6 +39,9 @@ void fix32_int128_mul(benchmark::State& state)
 		auto a = uida(mtg);
 		auto b = uidb(mtg);
 		state.ResumeTiming();
+		int128_t x = 0;
+		x.backend().resize(4, 4);
+		auto r = x.backend().size();
 		benchmark::DoNotOptimize(int128_mul(a, b));
 	}
 }
@@ -101,8 +97,6 @@ int128_t make_int128_t(uint64_t lo, uint64_t hi)
 
 void fix32_int128_div_rem(benchmark::State& state)
 {
-	auto max = state.range(0);
-
 	std::uniform_int_distribution<int64_t> uida{ state.range(0), state.range(1) };
 	std::uniform_int_distribution<int64_t> uidb{ state.range(2), state.range(3) };
 	std::uniform_int_distribution<int64_t> uidc{ state.range(4), state.range(5) };
@@ -125,8 +119,6 @@ BENCHMARK(fix32_int128_div_rem)->Apply(div_rem128_arguments_applier);
 
 void boost_int128_div_rem(benchmark::State& state)
 {
-	auto max = state.range(0);
-
 	std::uniform_int_distribution<int64_t> uida{ state.range(0), state.range(1) };
 	std::uniform_int_distribution<int64_t> uidb{ state.range(2), state.range(3) };
 	std::uniform_int_distribution<int64_t> uidc{ state.range(4), state.range(5) };
@@ -146,12 +138,14 @@ void boost_int128_div_rem(benchmark::State& state)
 }
 
 BENCHMARK(boost_int128_div_rem)->Apply(div_rem128_arguments_applier);
+#ifdef _WIN64
+struct retval {
+	uint64_t lo, hi, rem;
+};
 
 extern "C" retval uint128div(uint64_t lo, uint64_t hi, uint64_t div);
 void asm_int128_div_rem(benchmark::State& state)
 {
-	auto max = state.range(0);
-
 	std::uniform_int_distribution<int64_t> uida{ state.range(0), state.range(1) };
 	std::uniform_int_distribution<int64_t> uidb{ state.range(2), state.range(3) };
 	std::uniform_int_distribution<int64_t> uidc{ state.range(4), state.range(5) };
@@ -171,5 +165,63 @@ void asm_int128_div_rem(benchmark::State& state)
 }
 
 BENCHMARK(asm_int128_div_rem)->Apply(div_rem128_arguments_applier);
+#endif
+
+tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div(uint64_t a, uint64_t b);
+void knuth_uint96_div(benchmark::State& state) {
+
+	std::uniform_int_distribution<uint64_t> uida{ 0, ULLONG_MAX };
+	std::uniform_int_distribution<uint64_t> uidb{ 1, ULLONG_MAX };
+	for (auto _ : state)
+	{
+		state.PauseTiming();
+		auto a = uida(mtg);
+		auto b = uidb(mtg);
+		state.ResumeTiming();
+		benchmark::DoNotOptimize(shifted_uint64_div(a, b));
+	}
+}
+
+BENCHMARK(knuth_uint96_div);
+
+void boost_uint96_div(benchmark::State& state) {
+
+	std::uniform_int_distribution<uint64_t> uida{ 0, ULLONG_MAX };
+	std::uniform_int_distribution<uint64_t> uidb{ 1, ULLONG_MAX };
+	for (auto _ : state)
+	{
+		state.PauseTiming();
+		auto a = uida(mtg);
+		auto b = uidb(mtg);
+		while (b == 0)
+		{
+			b = uidb(mtg);
+		}
+		state.ResumeTiming();
+		benchmark::DoNotOptimize((uint128_t(a) << 32) / b);
+	}
+}
+
+BENCHMARK(boost_uint96_div);
+
+void fix32_int96_div(benchmark::State& state) {
+
+	std::uniform_int_distribution<uint64_t> uida{ 0, ULLONG_MAX };
+	std::uniform_int_distribution<uint64_t> uidb{ 1, ULLONG_MAX };
+	for (auto _ : state)
+	{
+		state.PauseTiming();
+		auto a = uida(mtg);
+		auto b = uidb(mtg);
+		while (b == 0)
+		{
+			b = uidb(mtg);
+		}
+		state.ResumeTiming();
+		benchmark::DoNotOptimize(int128_div_rem(a << 32, a >> 32, b));
+	}
+}
+
+BENCHMARK(fix32_int96_div);
 
 BENCHMARK_MAIN();
