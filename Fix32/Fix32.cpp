@@ -293,9 +293,9 @@ std::tuple<uint64_t, int64_t, int64_t> shifted_int64_div(int64_t _a, int64_t _b)
 	uint64_t rlo;
 	int64_t rhi, rem;
 	std::tie(rlo, rhi, rem) = shifted_uint64_div(a, b);
-	if ((a ^ b) < 0) {
+	if ((_a ^ _b) < 0) {
 		std::tie(rlo, rhi) = negate(rlo, rhi);
-		if (a < 0) {
+		if (_a < 0) {
 			rem = -rem;
 		}
 	}
@@ -381,7 +381,7 @@ std::pair<int64_t, int> safe_shl32_div(int64_t a, int64_t b) {
 		overflow = hi >= 0 ? 1 : -1;
 	} else if unlikely(hi > 0) {
 		overflow = 1;
-	} else if unlikely(hi < 0) {
+	} else if unlikely(hi < -1) {
 		overflow = -1;
 	}
 	return { lo, overflow };
@@ -399,7 +399,7 @@ std::pair<int64_t, int> safe_mul_shr32(int64_t a, int64_t b) {
 		overflow = hi >= 0 ? 1 : -1;
 	} else if unlikely(hi > 0) {
 		overflow = 1;
-	} else if unlikely(hi < 0) {
+	} else if unlikely(hi < -1) {
 		overflow = -1;
 	}
 	return { lo, overflow };
@@ -660,7 +660,7 @@ Fix32 Fix32::from_real(double value) {
 
 	uint64_t ivalue = reinterpret_cast<uint64_t&>(value);
 	bool sign = !!(ivalue >> 63);
-	int32_t exp = (ivalue >> 53) & 0x7FF;
+	int32_t exp = (ivalue >> 52) & 0x7FF;
 	uint64_t frac = ivalue & 0xF'FFFF'FFFF'FFFFull;
 	if (exp != 0) {
 		exp -= 1023;
