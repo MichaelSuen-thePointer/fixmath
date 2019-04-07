@@ -7,12 +7,18 @@ using std::uint64_t;
 
 class Fix32 {
 	int64_t _value = 0;
-	static Fix32 from_raw(int64_t value) {
-		Fix32 r;
-		r._value = value;
-		return r;
-	}
 public:
+	static Fix32 from_raw(int64_t value);
+	const static int64_t ZERO_RAW;
+	const static int64_t ONE_RAW;
+	const static int64_t MIN_RAW;
+	const static int64_t MAX_RAW;
+	const static int64_t MAX_INTEGER_RAW;
+	const static int64_t MIN_INTEGER_RAW;
+	const static int64_t POSITIVE_INFINITY_RAW;
+	const static int64_t NEGATIVE_INFINITY_RAW;
+	const static int64_t NOT_A_NUMBER_RAW;
+	
 	const static Fix32 ZERO;
 	const static Fix32 ONE;
 	const static Fix32 MAX;

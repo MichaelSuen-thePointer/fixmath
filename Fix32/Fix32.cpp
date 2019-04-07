@@ -150,14 +150,22 @@ tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div32(uint64_t a, uint32_t b)
 }
 
 tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div(uint64_t a, uint64_t b) {
-	const unsigned m = 1;
-	const unsigned n = 2;
+	assert((a >> 63) == 0 && (b >> 63) == 0);
+	if ((b & (b - 1)) == 0) {
+		int32_t shamt = 31 - clzll(b);
+		if (shamt >= 0) {
+			return { a >> shamt, 0, a & ((1 << shamt) - 1) };
+		} else {
+			return { a << -shamt, a >> (64 + shamt), 0 };
+		}
+	}
 	if ((a >> 32) == 0) {
 		return { (a << 32) / b, 0, (a << 32) % b };
 	}
 	if ((b >> 32) == 0) {
 		return shifted_uint64_div32(a, (uint32_t)b);
 	}
+	const unsigned n = 2;
 	auto log_d = clzll(b);
 	std::array<uint32_t, 4> u;
 	std::array<uint32_t, 2> v = { (uint32_t)(b << log_d), (uint32_t)(b << log_d >> 32) };
@@ -272,18 +280,47 @@ tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div(uint64_t a, uint64_t b) {
 		}
 	}
 	if (log_d) {
-		std::array<uint32_t, 4> remainder = { (u[0] >> log_d) | (u[1] << (32-log_d)), (u[1] >> log_d) | (u[2] << (32 - log_d)), (u[2] >> log_d) | (u[3] << (32 - log_d)), u[3] >> log_d };
+		std::array<uint32_t, 4> remainder = { (u[0] >> log_d) | (u[1] << (32 - log_d)), (u[1] >> log_d) | (u[2] << (32 - log_d)), (u[2] >> log_d) | (u[3] << (32 - log_d)), u[3] >> log_d };
 		return { quotient[0] | ((uint64_t)quotient[1] << 32), quotient[2] | ((uint64_t)quotient[3] << 32), remainder[0] | ((uint64_t)remainder[1] << 32) };
 	}
 	return { quotient[0] | (uint64_t)quotient[1] << 32, quotient[2] | (uint64_t)quotient[3] << 32, u[0] | ((uint64_t)u[1] << 32) };
 }
 
-pair<uint64_t, int64_t> int128_mul(int64_t _a, int64_t _b) {
+std::tuple<uint64_t, int64_t, int64_t> shifted_int64_div(int64_t _a, int64_t _b) {
+	assert(_a != i64limits::min() && _b != i64limits::min());
 	int64_t a = std::abs(_a);
 	int64_t b = std::abs(_b);
-	using int_limits = std::numeric_limits<int32_t>;
+	uint64_t rlo;
+	int64_t rhi, rem;
+	std::tie(rlo, rhi, rem) = shifted_uint64_div(a, b);
+	if ((a ^ b) < 0) {
+		std::tie(rlo, rhi) = negate(rlo, rhi);
+		if (a < 0) {
+			rem = -rem;
+		}
+	}
+	return { rlo, rhi, rem };
+}
+
+pair<uint64_t, int64_t> int128_mul(int64_t _a, int64_t _b) {
+	assert(_a != i64limits::min() && _b != i64limits::min());
+	int64_t a = std::abs(_a);
+	int64_t b = std::abs(_b);
 	uint64_t rhi, rlo;
-	if (a <= int_limits::max() && b <= int_limits::max()) {
+	if ((a & (a - 1)) == 0) {
+		std::swap(a, b);
+		std::swap(_a, _b);
+	}
+	if ((b & (b - 1)) == 0) {
+		if (b <= 1) {
+			rlo = a * b;
+			rhi = 0;
+		} else {
+			uint32_t shamt = 63 - clzll(b);
+			rhi = a >> (64 - shamt);
+			rlo = a << shamt;
+		}
+	} else if (a <= i32limits::max() && b <= i32limits::max()) {
 		rhi = 0;
 		rlo = a * b;
 	} else if ((a & 0xFFFFFFFFu) == 0 && (b & 0xFFFFFFFFu) == 0) {
@@ -312,7 +349,7 @@ pair<uint64_t, int64_t> int128_mul(int64_t _a, int64_t _b) {
 
 		rhi += carry2 + (ahi_blo_p_alo_bhi >> 32);
 	}
-	if ((_a < 0 && _b < 0) || (_a > 0 && _b > 0)) {
+	if ((_a ^ _b) >= 0) {
 		return { rlo, rhi };
 	}
 	return negate(rlo, rhi);
@@ -334,13 +371,18 @@ int64_t mul_shr32(int64_t a, int64_t b) {
 }
 
 std::pair<int64_t, int> safe_shl32_div(int64_t a, int64_t b) {
-	auto[lo, hi, rem] = int128_div_rem(a << 32, a >> 32, b);
-	(void)rem;
+	assert(b != 0);
+	int64_t lo;
+	int64_t hi;
+	int64_t rem;
+	std::tie(lo, hi, rem) = shifted_int64_div(a, b);
 	int overflow = 0;
-	if unlikely((int64_t)lo < i64limits::min() + 2 || (int64_t)lo > i64limits::max() - 1) { //低位溢出
+	if unlikely(lo < Fix32::MIN_RAW || lo > Fix32::MAX_RAW) { //低位溢出
 		overflow = hi >= 0 ? 1 : -1;
-	} else { //高位溢出
-		overflow = hi > 0 ? 1 : hi < -1 ? -1 : 0;
+	} else if unlikely(hi > 0) {
+		overflow = 1;
+	} else if unlikely(hi < 0) {
+		overflow = -1;
 	}
 	return { lo, overflow };
 }
@@ -353,10 +395,12 @@ std::pair<int64_t, int> safe_mul_shr32(int64_t a, int64_t b) {
 	lo = (hi << 32) | (lo >> 32);
 	hi >>= 32;
 	int overflow = 0;
-	if unlikely((int64_t)lo < i64limits::min() + 2 || (int64_t)lo > i64limits::max() - 1) { //低位溢出
+	if unlikely((int64_t)lo < Fix32::MIN_RAW || (int64_t)lo > Fix32::MAX_RAW) { //低位溢出
 		overflow = hi >= 0 ? 1 : -1;
-	} else { //高位溢出
-		overflow = hi > 0 ? 1 : hi < -1 ? -1 : 0;
+	} else if unlikely(hi > 0) {
+		overflow = 1;
+	} else if unlikely(hi < 0) {
+		overflow = -1;
 	}
 	return { lo, overflow };
 }
@@ -383,6 +427,7 @@ Fix32 operator+(Fix32 a, Fix32 b) {
 		//结果刚好等于i64min，溢出
 		return Fix32::NEGATIVE_INFINITY;
 	}
+	//结果等于INFINITY_RAW, 恰好溢出，无需判断
 	return Fix32::from_raw(raw_result);
 }
 
@@ -400,13 +445,16 @@ Fix32 operator-(Fix32 a, Fix32 b) {
 	if unlikely(b.is_infinity()) {
 		return b;
 	}
-	if unlikely(a._value > 0 && b._value < 0 && i64limits::max() - 1 + b._value < a._value) {
-		return Fix32::POSITIVE_INFINITY;
+	int64_t raw_result = (int64_t)((uint64_t)a._value - (uint64_t)b._value);
+	if unlikely((a._value ^ b._value) < 0 && (a._value ^ raw_result) < 0) {
+		//操作数同号，结果与操作数异号，溢出
+		return raw_result > 0 ? Fix32::NEGATIVE_INFINITY : Fix32::POSITIVE_INFINITY;
 	}
-	if unlikely(a._value < 0 && b._value > 0 && i64limits::min() + 2 + b._value > a._value) {
+	if unlikely(raw_result == i64limits::min()) {
 		return Fix32::NEGATIVE_INFINITY;
 	}
-	return Fix32::from_raw(a._value - b._value);
+	//结果等于INFINITY_RAW, 恰好溢出，无需判断
+	return Fix32::from_raw(raw_result);
 }
 
 Fix32 operator*(Fix32 a, Fix32 b) {
@@ -415,19 +463,6 @@ Fix32 operator*(Fix32 a, Fix32 b) {
 	}
 	if unlikely((a._value == 0 && b.is_infinity()) || (a.is_infinity() && b._value == 0)) {
 		return Fix32::NOT_A_NUMBER;
-	}
-	if (uint64_t abs_value = std::abs(b._value); (abs_value & (abs_value - 1)) == 0) {
-		auto shamt = 31 - clzll(abs_value);
-		auto r_value = a._value;
-		if (shamt > 0) {
-			if unlikely(clzll(std::abs(r_value)) <= shamt) {
-				return r_value > 0 ? Fix32::POSITIVE_INFINITY : Fix32::NEGATIVE_INFINITY;
-			}
-			r_value <<= shamt;
-		} else {
-			r_value >>= -shamt;
-		}
-		return Fix32::from_raw((b._value < 0 ? -1 : 1) * r_value);
 	}
 	auto[r, overflow] = safe_mul_shr32(a._value, b._value);
 	if likely(!overflow) {
@@ -448,19 +483,6 @@ Fix32 operator/(Fix32 a, Fix32 b) {
 	}
 	if (b._value == 0) {
 		return a._value > 0 ? Fix32::POSITIVE_INFINITY : Fix32::NEGATIVE_INFINITY;
-	}
-	if (uint64_t abs_value = std::abs(b._value); (abs_value & (abs_value - 1)) == 0) {
-		auto shamt = 31 - clzll(abs_value);
-		auto r_value = a._value;
-		if (shamt > 0) {
-			r_value >>= shamt;
-		} else {
-			if unlikely(clzll(std::abs(r_value)) <= -shamt) {
-				return r_value > 0 ? Fix32::POSITIVE_INFINITY : Fix32::NEGATIVE_INFINITY;
-			}
-			r_value <<= -shamt;
-		}
-		return Fix32::from_raw((b._value < 0 ? -1 : 1) * r_value);
 	}
 	auto[r, overflow] = safe_shl32_div(a._value, b._value);
 	if likely(!overflow) {
@@ -540,6 +562,12 @@ std::ostream& operator<<(std::ostream& os, Fix32 a) {
 	return os << a.to_real<double>();
 }
 
+inline Fix32 Fix32::from_raw(int64_t value) {
+	Fix32 r;
+	r._value = value;
+	return r;
+}
+
 Fix32 Fix32::from_integer(int value) {
 	if unlikely(value == i32limits::min()) {
 		return NEGATIVE_INFINITY;
@@ -548,27 +576,27 @@ Fix32 Fix32::from_integer(int value) {
 }
 
 Fix32 Fix32::from_integer(uint32_t value) {
-	if unlikely(value >> 31) {
+	if unlikely(value > MAX_RAW) {
 		return POSITIVE_INFINITY;
 	}
 	return Fix32::from_raw((int64_t)value << 32);
 }
 
 Fix32 Fix32::from_integer(int64_t value) {
-	if unlikely(value > i32limits::max()) {
+	if unlikely(value > MAX_RAW) {
 		return POSITIVE_INFINITY;
 	}
-	if unlikely(value < -i32limits::max()) {
+	if unlikely(value < MIN_RAW) {
 		return NEGATIVE_INFINITY;
 	}
 	return Fix32::from_raw(value << 32);
 }
 
 Fix32 Fix32::from_integer(uint64_t value) {
-	if unlikely(value > i32limits::max()) {
+	if unlikely(value > (uint64_t)MAX_RAW) {
 		return POSITIVE_INFINITY;
 	}
-	return Fix32(value);
+	return Fix32((int64_t)value << 32);
 }
 
 Fix32 Fix32::from_real(float value) {
@@ -772,15 +800,25 @@ int Fix32::compare(Fix32 b) const {
 	return 0;
 }
 
-const Fix32 Fix32::ZERO{ Fix32::from_raw(0) };
-const Fix32 Fix32::ONE{ Fix32::from_raw(1ll << 32) };
-const Fix32 Fix32::MAX{ Fix32::from_raw(i64limits::max() - 1) };
-const Fix32 Fix32::MIN{ Fix32::from_raw(i64limits::min() + 2) };
-const Fix32 Fix32::MAX_INTEGER{ Fix32::from_raw((int64_t)i32limits::max() << 32) };
-const Fix32 Fix32::MIN_INTEGER{ Fix32::from_raw((int64_t)((uint64_t)-i32limits::max() << 32)) };
-const Fix32 Fix32::POSITIVE_INFINITY{ Fix32::from_raw(i64limits::max()) };
-const Fix32 Fix32::NEGATIVE_INFINITY{ Fix32::from_raw(i64limits::min() + 1) };
-const Fix32 Fix32::NOT_A_NUMBER{ Fix32::from_raw(i64limits::min()) };
+const int64_t Fix32::ZERO_RAW = 0;
+const int64_t Fix32::ONE_RAW = 1ll << 32;
+const int64_t Fix32::MAX_RAW = i64limits::max() - 1;
+const int64_t Fix32::MIN_RAW = i64limits::min() + 2;
+const int64_t Fix32::MAX_INTEGER_RAW = (int64_t)i32limits::max() << 32;
+const int64_t Fix32::MIN_INTEGER_RAW = (int64_t)((uint64_t)-i32limits::max() << 32);
+const int64_t Fix32::POSITIVE_INFINITY_RAW = i64limits::max();
+const int64_t Fix32::NEGATIVE_INFINITY_RAW = i64limits::min() + 1;
+const int64_t Fix32::NOT_A_NUMBER_RAW = i64limits::min();
+
+const Fix32 Fix32::ZERO{ Fix32::from_raw(Fix32::ZERO_RAW) };
+const Fix32 Fix32::ONE{ Fix32::from_raw(Fix32::ONE_RAW) };
+const Fix32 Fix32::MAX{ Fix32::from_raw(Fix32::MAX_RAW) };
+const Fix32 Fix32::MIN{ Fix32::from_raw(Fix32::MIN_RAW) };
+const Fix32 Fix32::MAX_INTEGER{ Fix32::from_raw(Fix32::MAX_INTEGER_RAW) };
+const Fix32 Fix32::MIN_INTEGER{ Fix32::from_raw(Fix32::MIN_INTEGER_RAW) };
+const Fix32 Fix32::POSITIVE_INFINITY{ Fix32::from_raw(Fix32::POSITIVE_INFINITY_RAW) };
+const Fix32 Fix32::NEGATIVE_INFINITY{ Fix32::from_raw(Fix32::NEGATIVE_INFINITY_RAW) };
+const Fix32 Fix32::NOT_A_NUMBER{ Fix32::from_raw(Fix32::NOT_A_NUMBER_RAW) };
 
 template float Fix32::to_real<float>() const;
 template double Fix32::to_real<double>() const;
