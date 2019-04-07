@@ -150,6 +150,9 @@ tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div32(uint64_t a, uint32_t b)
 }
 
 tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div(uint64_t a, uint64_t b) {
+	//implements (a << 32) / b
+	//use multiprecision division, consider a and b as 2-digit 2^32 based number
+	//see Knuth Vol.2 for algorithm explaination
 	assert((a >> 63) == 0 && (b >> 63) == 0);
 	if ((b & (b - 1)) == 0) {
 		int32_t shamt = 31 - clzll(b);
@@ -174,7 +177,7 @@ tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div(uint64_t a, uint64_t b) {
 	} else {
 		u = { 0, (uint32_t)a, (uint32_t)(a >> 32), 0 };
 	}
-	std::array<uint32_t, 4> quotient = {};
+	std::array<uint32_t, 2> quotient = {};
 	{
 		const unsigned j = 1;
 		uint64_t a = (uint64_t)u[j + n] << 32 | u[j + n - 1];
@@ -280,10 +283,10 @@ tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div(uint64_t a, uint64_t b) {
 		}
 	}
 	if (log_d) {
-		std::array<uint32_t, 4> remainder = { (u[0] >> log_d) | (u[1] << (32 - log_d)), (u[1] >> log_d) | (u[2] << (32 - log_d)), (u[2] >> log_d) | (u[3] << (32 - log_d)), u[3] >> log_d };
-		return { quotient[0] | ((uint64_t)quotient[1] << 32), quotient[2] | ((uint64_t)quotient[3] << 32), remainder[0] | ((uint64_t)remainder[1] << 32) };
+		std::array<uint32_t, 2> remainder = { (u[0] >> log_d) | (u[1] << (32 - log_d)), (u[1] >> log_d) | (u[2] << (32 - log_d)) };
+		return { quotient[0] | ((uint64_t)quotient[1] << 32), 0, remainder[0] | ((uint64_t)remainder[1] << 32) };
 	}
-	return { quotient[0] | (uint64_t)quotient[1] << 32, quotient[2] | (uint64_t)quotient[3] << 32, u[0] | ((uint64_t)u[1] << 32) };
+	return { quotient[0] | (uint64_t)quotient[1] << 32, 0, u[0] | ((uint64_t)u[1] << 32) };
 }
 
 std::tuple<uint64_t, int64_t, int64_t> shifted_int64_div(int64_t _a, int64_t _b) {

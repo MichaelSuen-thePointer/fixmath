@@ -167,61 +167,75 @@ void asm_int128_div_rem(benchmark::State& state)
 BENCHMARK(asm_int128_div_rem)->Apply(div_rem128_arguments_applier);
 #endif
 
+void uint96div_arguments_applier(benchmark::internal::Benchmark* b)
+{
+	using u32 = std::numeric_limits<int32_t>;
+	using u64 = std::numeric_limits<int64_t>;
+	b->ArgNames({"a_hi", "a_lo", "b_hi", "b_lo"});
+	b->Args({1, 1, 1, 1 }); //aa/bb
+	b->Args({1, 1, 0, 1 }); //aa/0b
+	b->Args({0, 1, 1, 1 }); //0a/bb
+	b->Args({0, 1, 0, 1 }); //0a/0b
+	b->Args({0, 1, 1, 0 }); //0a/b0
+	b->Args({ 1, 0, 1, 0 }); //a0/b0
+	b->Args({ 1, 1, 1, 0 }); //aa/b0
+	b->Args({ 1, 0, 1, 1 }); //a0/bb
+	b->Args({ 1, 0, 0, 1 }); //a0/0b
+}
+
 tuple<uint64_t, uint64_t, uint64_t> shifted_uint64_div(uint64_t a, uint64_t b);
 void knuth_uint96_div(benchmark::State& state) {
-
-	std::uniform_int_distribution<uint64_t> uida{ 0, ULLONG_MAX };
-	std::uniform_int_distribution<uint64_t> uidb{ 1, ULLONG_MAX };
+	std::uniform_int_distribution<uint64_t> uid{ 1, 0x7FFF'FFFF };
+	auto ahi = state.range(0);
+	auto alo = state.range(1);
+	auto bhi = state.range(2);
+	auto blo = state.range(3);
 	for (auto _ : state)
 	{
 		state.PauseTiming();
-		auto a = uida(mtg);
-		auto b = uidb(mtg);
+		auto a = (ahi ? uid(mtg) << 32 : 0) | (alo ? uid(mtg) : 0);
+		auto b = (bhi ? uid(mtg) << 32 : 0) | (blo ? uid(mtg) : 0);
 		state.ResumeTiming();
 		benchmark::DoNotOptimize(shifted_uint64_div(a, b));
 	}
 }
 
-BENCHMARK(knuth_uint96_div);
+BENCHMARK(knuth_uint96_div)->Apply(uint96div_arguments_applier);
 
 void boost_uint96_div(benchmark::State& state) {
-
-	std::uniform_int_distribution<uint64_t> uida{ 0, ULLONG_MAX };
-	std::uniform_int_distribution<uint64_t> uidb{ 1, ULLONG_MAX };
+	std::uniform_int_distribution<uint64_t> uid{ 1, 0x7FFF'FFFF };
+	auto ahi = state.range(0);
+	auto alo = state.range(1);
+	auto bhi = state.range(2);
+	auto blo = state.range(3);
 	for (auto _ : state)
 	{
 		state.PauseTiming();
-		auto a = uida(mtg);
-		auto b = uidb(mtg);
-		while (b == 0)
-		{
-			b = uidb(mtg);
-		}
+		auto a = (ahi ? uid(mtg) << 32 : 0) | (alo ? uid(mtg) : 0);
+		auto b = (bhi ? uid(mtg) << 32 : 0) | (blo ? uid(mtg) : 0);
 		state.ResumeTiming();
 		benchmark::DoNotOptimize((uint128_t(a) << 32) / b);
 	}
 }
 
-BENCHMARK(boost_uint96_div);
+BENCHMARK(boost_uint96_div)->Apply(uint96div_arguments_applier);
 
 void fix32_int96_div(benchmark::State& state) {
-
-	std::uniform_int_distribution<uint64_t> uida{ 0, ULLONG_MAX };
-	std::uniform_int_distribution<uint64_t> uidb{ 1, ULLONG_MAX };
+	std::uniform_int_distribution<uint64_t> uid{ 1, 0x7FFF'FFFF };
+	auto ahi = state.range(0);
+	auto alo = state.range(1);
+	auto bhi = state.range(2);
+	auto blo = state.range(3);
 	for (auto _ : state)
 	{
 		state.PauseTiming();
-		auto a = uida(mtg);
-		auto b = uidb(mtg);
-		while (b == 0)
-		{
-			b = uidb(mtg);
-		}
+		auto a = (ahi ? uid(mtg)<<32 : 0) | (alo ? uid(mtg) : 0);
+		auto b = (bhi ? uid(mtg)<<32 : 0) | (blo ? uid(mtg) : 0);
 		state.ResumeTiming();
 		benchmark::DoNotOptimize(int128_div_rem(a << 32, a >> 32, b));
 	}
 }
 
-BENCHMARK(fix32_int96_div);
+BENCHMARK(fix32_int96_div)->Apply(uint96div_arguments_applier);
 
 BENCHMARK_MAIN();
