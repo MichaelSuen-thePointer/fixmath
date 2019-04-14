@@ -180,44 +180,63 @@ BOOST_AUTO_TEST_CASE(helper_function_shifted_uint64_div) {
 #include "../Fix32/Fix32.hpp"
 
 BOOST_AUTO_TEST_CASE(nan_case) {
-	BOOST_TEST(Fix32::NOT_A_NUMBER != Fix32::NOT_A_NUMBER);
-	BOOST_TEST(Fix32::NOT_A_NUMBER.is_nan());
+	BOOST_TEST(Fix32::NaN != Fix32::NaN);
+	BOOST_TEST(Fix32::NaN.is_nan());
 
-	BOOST_TEST(!Fix32::POSITIVE_INFINITY.is_nan());
-	BOOST_TEST(!Fix32::NEGATIVE_INFINITY.is_nan());
+	BOOST_TEST(!Fix32::INF.is_nan());
+	BOOST_TEST(!(-Fix32::INF).is_nan());
 	BOOST_TEST(!Fix32(1).is_nan());
 	BOOST_TEST(!Fix32(-1).is_nan());
 	BOOST_TEST(!Fix32(0).is_nan());
 
-	BOOST_TEST((Fix32::NOT_A_NUMBER + Fix32(1)).is_nan());
-	BOOST_TEST((Fix32::NOT_A_NUMBER - Fix32(1)).is_nan());
-	BOOST_TEST((Fix32::NOT_A_NUMBER * Fix32(1)).is_nan());
-	BOOST_TEST((Fix32::NOT_A_NUMBER / Fix32(1)).is_nan());
+	BOOST_TEST((Fix32::NaN + Fix32(1)).is_nan());
+	BOOST_TEST((Fix32::NaN - Fix32(1)).is_nan());
+	BOOST_TEST((Fix32::NaN * Fix32(1)).is_nan());
+	BOOST_TEST((Fix32::NaN / Fix32(1)).is_nan());
 
-	BOOST_TEST((Fix32(-1) + Fix32::NOT_A_NUMBER).is_nan());
-	BOOST_TEST((Fix32(-1) - Fix32::NOT_A_NUMBER).is_nan());
-	BOOST_TEST((Fix32(-1) * Fix32::NOT_A_NUMBER).is_nan());
-	BOOST_TEST((Fix32(-1) / Fix32::NOT_A_NUMBER).is_nan());
+	BOOST_TEST((Fix32(-1) + Fix32::NaN).is_nan());
+	BOOST_TEST((Fix32(-1) - Fix32::NaN).is_nan());
+	BOOST_TEST((Fix32(-1) * Fix32::NaN).is_nan());
+	BOOST_TEST((Fix32(-1) / Fix32::NaN).is_nan());
 
-	BOOST_TEST((Fix32::NOT_A_NUMBER + Fix32::NOT_A_NUMBER).is_nan());
-	BOOST_TEST((Fix32::NOT_A_NUMBER - Fix32::NOT_A_NUMBER).is_nan());
-	BOOST_TEST((Fix32::NOT_A_NUMBER * Fix32::NOT_A_NUMBER).is_nan());
-	BOOST_TEST((Fix32::NOT_A_NUMBER / Fix32::NOT_A_NUMBER).is_nan());
+	BOOST_TEST((Fix32::NaN + Fix32::NaN).is_nan());
+	BOOST_TEST((Fix32::NaN - Fix32::NaN).is_nan());
+	BOOST_TEST((Fix32::NaN * Fix32::NaN).is_nan());
+	BOOST_TEST((Fix32::NaN / Fix32::NaN).is_nan());
 
 	BOOST_TEST((Fix32(0) / Fix32(0)).is_nan());
 
-	BOOST_TEST((Fix32::POSITIVE_INFINITY + Fix32::NEGATIVE_INFINITY).is_nan());
-	BOOST_TEST((Fix32::NEGATIVE_INFINITY + Fix32::POSITIVE_INFINITY).is_nan());
+	BOOST_TEST((Fix32::INF / -Fix32::INF).is_nan());
+	BOOST_TEST((Fix32::INF / Fix32::INF).is_nan());
+	BOOST_TEST((-Fix32::INF / Fix32::INF).is_nan());
+	BOOST_TEST((-Fix32::INF / -Fix32::INF).is_nan());
 
-	BOOST_TEST((Fix32::POSITIVE_INFINITY / Fix32::NEGATIVE_INFINITY).is_nan());
-	BOOST_TEST((Fix32::POSITIVE_INFINITY / Fix32::POSITIVE_INFINITY).is_nan());
-	BOOST_TEST((Fix32::NEGATIVE_INFINITY / Fix32::POSITIVE_INFINITY).is_nan());
-	BOOST_TEST((Fix32::NEGATIVE_INFINITY / Fix32::NEGATIVE_INFINITY).is_nan());
+	BOOST_TEST((Fix32::INF * Fix32(0)).is_nan());
+	BOOST_TEST((-Fix32::INF * Fix32(0)).is_nan());
+	BOOST_TEST((Fix32(0) * Fix32::INF).is_nan());
+	BOOST_TEST((Fix32(0) * -Fix32::INF).is_nan());
+}
 
-	BOOST_TEST((Fix32::POSITIVE_INFINITY * Fix32(0)).is_nan());
-	BOOST_TEST((Fix32::NEGATIVE_INFINITY * Fix32(0)).is_nan());
-	BOOST_TEST((Fix32(0) * Fix32::POSITIVE_INFINITY).is_nan());
-	BOOST_TEST((Fix32(0) * Fix32::NEGATIVE_INFINITY).is_nan());
+BOOST_AUTO_TEST_CASE(add_sub_infinity_case) {
+	BOOST_TEST(Fix32::INF + Fix32::INF == Fix32::INF);
+	BOOST_TEST((Fix32::INF + -Fix32::INF).is_nan());
+	BOOST_TEST((Fix32::INF - Fix32::INF).is_nan());
+	BOOST_TEST(Fix32::INF - -Fix32::INF == Fix32::INF);
+
+	BOOST_TEST((-Fix32::INF + Fix32::INF).is_nan());
+	BOOST_TEST(-Fix32::INF + -Fix32::INF == -Fix32::INF);
+	BOOST_TEST(-Fix32::INF - Fix32::INF == -Fix32::INF);
+	BOOST_TEST((-Fix32::INF - -Fix32::INF).is_nan());
+
+	BOOST_TEST(Fix32::INF + 5 == Fix32::INF);
+	BOOST_TEST(Fix32::INF - 5 == Fix32::INF);
+	BOOST_TEST(-Fix32::INF + 5 == -Fix32::INF);
+	BOOST_TEST(-Fix32::INF - 5 == -Fix32::INF);
+
+	BOOST_TEST(5 + Fix32::INF == Fix32::INF);
+	BOOST_TEST(5 - Fix32::INF == -Fix32::INF);
+	BOOST_TEST(5 + Fix32::INF == Fix32::INF);
+	BOOST_TEST(5 - Fix32::INF == -Fix32::INF);
 }
 
 BOOST_AUTO_TEST_CASE(normal_integer_add_sub) {
