@@ -2,6 +2,88 @@
 #include <tuple>
 #include <algorithm>
 #include <iosfwd>
+
+#if defined __has_include && __has_include(<compare>)
+# include <compare>
+using partial_ordering = std::partial_ordering;
+#else
+
+struct MustBeZeroTag;
+using MustBeZeroParam = void (MustBeZeroTag::*)();
+
+class partial_ordering {
+	signed char _value;
+	constexpr partial_ordering(int value) : _value(value) {}
+public:
+	const static partial_ordering less;
+	const static partial_ordering equivalent;
+	const static partial_ordering greater;
+	const static partial_ordering unordered;
+
+	friend constexpr bool operator==(partial_ordering __v, MustBeZeroParam);
+	friend constexpr bool operator!=(partial_ordering __v, MustBeZeroParam);
+	friend constexpr bool operator< (partial_ordering __v, MustBeZeroParam);
+	friend constexpr bool operator<=(partial_ordering __v, MustBeZeroParam);
+	friend constexpr bool operator> (partial_ordering __v, MustBeZeroParam);
+	friend constexpr bool operator>=(partial_ordering __v, MustBeZeroParam);
+	friend constexpr bool operator==(MustBeZeroParam, partial_ordering __v);
+	friend constexpr bool operator!=(MustBeZeroParam, partial_ordering __v);
+	friend constexpr bool operator< (MustBeZeroParam, partial_ordering __v);
+	friend constexpr bool operator<=(MustBeZeroParam, partial_ordering __v);
+	friend constexpr bool operator> (MustBeZeroParam, partial_ordering __v);
+	friend constexpr bool operator>=(MustBeZeroParam, partial_ordering __v);
+};
+
+inline constexpr bool operator==(partial_ordering v, MustBeZeroParam) {
+	return v._value != -127 && v._value == 0;
+}
+
+inline constexpr bool operator< (partial_ordering v, MustBeZeroParam) {
+	return v._value != -127 && v._value < 0;
+}
+
+inline constexpr bool operator<=(partial_ordering v, MustBeZeroParam) {
+	return v._value != -127 && v._value <= 0;
+}
+
+inline constexpr bool operator> (partial_ordering v, MustBeZeroParam) {
+	return v._value != -127 && v._value > 0;
+}
+
+inline constexpr bool operator>=(partial_ordering v, MustBeZeroParam) {
+	return v._value != -127 && v._value >= 0;
+}
+
+inline constexpr bool operator==(MustBeZeroParam, partial_ordering v) {
+	return v._value != -127 && 0 == v._value;
+}
+
+inline constexpr bool operator< (MustBeZeroParam, partial_ordering v) {
+	return v._value != -127 && 0 < v._value;
+}
+
+inline constexpr bool operator<=(MustBeZeroParam, partial_ordering v) {
+	return v._value != -127 && 0 <= v._value;
+}
+
+inline constexpr bool operator> (MustBeZeroParam, partial_ordering v) {
+	return v._value != -127 && 0 > v._value;
+}
+
+inline constexpr bool operator>=(MustBeZeroParam, partial_ordering v) {
+	return v._value != -127 && 0 >= v._value;
+}
+
+inline constexpr bool operator!=(partial_ordering v, MustBeZeroParam) {
+	return v._value == -127 || v._value != 0;
+}
+
+inline constexpr bool operator!=(MustBeZeroParam, partial_ordering v) {
+	return v._value == -127 || v._value != 0;
+}
+
+#endif
+
 using std::int64_t;
 using std::uint64_t;
 
@@ -13,21 +95,21 @@ public:
 	const static int64_t ONE_RAW;
 	const static int64_t MIN_RAW;
 	const static int64_t MAX_RAW;
-	const static int64_t MAX_INTEGER_RAW;
-	const static int64_t MIN_INTEGER_RAW;
-	const static int64_t POSITIVE_INFINITY_RAW;
-	const static int64_t NEGATIVE_INFINITY_RAW;
-	const static int64_t NOT_A_NUMBER_RAW;
-	
+	const static int64_t MAX_INT_RAW;
+	const static int64_t MIN_INT_RAW;
+	const static int64_t INF_RAW;
+	const static int64_t NaN_RAW;
+	const static int64_t DELTA_RAW;
+
 	const static Fix32 ZERO;
 	const static Fix32 ONE;
 	const static Fix32 MAX;
 	const static Fix32 MIN;
-	const static Fix32 MAX_INTEGER;
-	const static Fix32 MIN_INTEGER;
-	const static Fix32 POSITIVE_INFINITY;
-	const static Fix32 NEGATIVE_INFINITY;
-	const static Fix32 NOT_A_NUMBER;
+	const static Fix32 MAX_INT;
+	const static Fix32 MIN_INT;
+	const static Fix32 INF;
+	const static Fix32 NaN;
+	const static Fix32 DELTA;
 	static Fix32 from_integer(int value);
 	static Fix32 from_integer(uint32_t value);
 	static Fix32 from_integer(int64_t value);
@@ -51,17 +133,22 @@ public:
 	template<class T>
 	T to_real() const;
 
+	friend Fix32 operator+(Fix32 a);
+	friend Fix32 operator-(Fix32 a);
+
 	friend Fix32 operator+(Fix32 a, Fix32 b);
 	friend Fix32 operator-(Fix32 a, Fix32 b);
 	friend Fix32 operator*(Fix32 a, Fix32 b);
 	friend Fix32 operator/(Fix32 a, Fix32 b);
+	friend Fix32 operator%(Fix32 a, Fix32 b);
 
 	friend Fix32& operator+=(Fix32& a, Fix32 b);
 	friend Fix32& operator-=(Fix32& a, Fix32 b);
 	friend Fix32& operator*=(Fix32& a, Fix32 b);
 	friend Fix32& operator/=(Fix32& a, Fix32 b);
+	friend Fix32& operator%=(Fix32& a, Fix32 b);
 
-	int compare(Fix32 b) const;
+	partial_ordering compare(Fix32 b) const;
 	friend bool operator>(Fix32 a, Fix32 b);
 	friend bool operator>=(Fix32 a, Fix32 b);
 	friend bool operator<(Fix32 a, Fix32 b);

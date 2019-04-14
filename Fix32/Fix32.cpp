@@ -47,6 +47,13 @@ int clzll(uint64_t value) {
 #  define assume(cond)    do { if (!(cond)) __builtin_unreachable(); } while (0)
 #endif
 
+#if !defined __has_include || !__has_include(<compare>)
+constexpr partial_ordering partial_ordering::less = -1;
+constexpr partial_ordering partial_ordering::equivalent = 0;
+constexpr partial_ordering partial_ordering::greater = 1;
+constexpr partial_ordering partial_ordering::unordered = -127;
+#endif
+
 using std::pair;
 using std::tuple;
 using i64limits = std::numeric_limits<int64_t>;
@@ -359,7 +366,7 @@ pair<uint64_t, int64_t> int128_mul(int64_t _a, int64_t _b) {
 }
 
 int64_t shl32_div(int64_t a, int64_t b) {
-	auto[lo, hi, rem] = int128_div_rem(a << 32, a >> 32, b);
+	auto[lo, hi, rem] = shifted_int64_div(a, b);
 	(void)hi;
 	(void)rem;
 	return lo;
@@ -408,39 +415,20 @@ std::pair<int64_t, int> safe_mul_shr32(int64_t a, int64_t b) {
 	return { lo, overflow };
 }
 
-Fix32 operator+(Fix32 a, Fix32 b) {
-	if unlikely(a.is_nan() || b.is_nan()) {
-		return Fix32::NOT_A_NUMBER;
-	}
-	if unlikely(a.infinity_sign() * b.infinity_sign() < 0) {
-		return Fix32::NOT_A_NUMBER;
-	}
-	if unlikely(a.infinity_sign() + b.infinity_sign() > 0) {
-		return Fix32::POSITIVE_INFINITY;
-	}
-	if unlikely(a.infinity_sign() + b.infinity_sign() < 0) {
-		return Fix32::NEGATIVE_INFINITY;
-	}
-	int64_t raw_result = (int64_t)((uint64_t)a._value + (uint64_t)b._value);
-	if unlikely((a._value ^ b._value) > 0 && (a._value ^ raw_result) < 0) {
-		//操作数同号，结果与操作数异号，溢出
-		return raw_result > 0 ? Fix32::NEGATIVE_INFINITY : Fix32::POSITIVE_INFINITY;
-	}
-	if unlikely(raw_result == i64limits::min()) {
-		//结果刚好等于i64min，溢出
-		return Fix32::NEGATIVE_INFINITY;
-	}
-	//结果等于INFINITY_RAW, 恰好溢出，无需判断
-	return Fix32::from_raw(raw_result);
+Fix32 operator+(Fix32 a) {
+	return a;
 }
 
-Fix32 operator-(Fix32 a, Fix32 b) {
+Fix32 operator-(Fix32 a) {
+	return Fix32::from_raw((int64_t)(~(uint64_t)a._value + 1));
+}
+
+Fix32 operator+(Fix32 a, Fix32 b) {
 	if unlikely(a.is_nan() || b.is_nan()) {
-		return Fix32::NOT_A_NUMBER;
+		return Fix32::NaN;
 	}
-	if unlikely((a.is_positive_infinity() && b.is_positive_infinity())
-		|| (a.is_negative_infinity() && b.is_negative_infinity())) {
-		return Fix32::NOT_A_NUMBER;
+	if unlikely(a.infinity_sign() * b.infinity_sign() < 0) {
+		return Fix32::NaN;
 	}
 	if unlikely(a.is_infinity()) {
 		return a;
@@ -448,13 +436,39 @@ Fix32 operator-(Fix32 a, Fix32 b) {
 	if unlikely(b.is_infinity()) {
 		return b;
 	}
+	int64_t raw_result = (int64_t)((uint64_t)a._value + (uint64_t)b._value);
+	if unlikely((a._value ^ b._value) > 0 && (a._value ^ raw_result) < 0) {
+		//操作数同号，结果与操作数异号，溢出
+		return raw_result > 0 ? -Fix32::INF : Fix32::INF;
+	}
+	if unlikely(raw_result == i64limits::min()) {
+		//结果刚好等于i64min，溢出
+		return -Fix32::INF;
+	}
+	//结果等于INFINITY_RAW, 恰好溢出，无需判断
+	return Fix32::from_raw(raw_result);
+}
+
+Fix32 operator-(Fix32 a, Fix32 b) {
+	if unlikely(a.is_nan() || b.is_nan()) {
+		return Fix32::NaN;
+	}
+	if unlikely(a.infinity_sign() * b.infinity_sign() > 0) {
+		return Fix32::NaN;
+	}
+	if unlikely(a.is_infinity()) {
+		return a;
+	}
+	if unlikely(b.is_infinity()) {
+		return -b;
+	}
 	int64_t raw_result = (int64_t)((uint64_t)a._value - (uint64_t)b._value);
 	if unlikely((a._value ^ b._value) < 0 && (a._value ^ raw_result) < 0) {
 		//操作数同号，结果与操作数异号，溢出
-		return raw_result > 0 ? Fix32::NEGATIVE_INFINITY : Fix32::POSITIVE_INFINITY;
+		return raw_result > 0 ? -Fix32::INF : Fix32::INF;
 	}
 	if unlikely(raw_result == i64limits::min()) {
-		return Fix32::NEGATIVE_INFINITY;
+		return -Fix32::INF;
 	}
 	//结果等于INFINITY_RAW, 恰好溢出，无需判断
 	return Fix32::from_raw(raw_result);
@@ -462,36 +476,49 @@ Fix32 operator-(Fix32 a, Fix32 b) {
 
 Fix32 operator*(Fix32 a, Fix32 b) {
 	if unlikely(a.is_nan() || b.is_nan()) {
-		return Fix32::NOT_A_NUMBER;
+		return Fix32::NaN;
 	}
 	if unlikely((a._value == 0 && b.is_infinity()) || (a.is_infinity() && b._value == 0)) {
-		return Fix32::NOT_A_NUMBER;
+		return Fix32::NaN;
 	}
 	auto[r, overflow] = safe_mul_shr32(a._value, b._value);
 	if likely(!overflow) {
 		return Fix32::from_raw(r);
 	}
-	return overflow > 0 ? Fix32::POSITIVE_INFINITY : Fix32::NEGATIVE_INFINITY;
+	return overflow > 0 ? Fix32::INF : -Fix32::INF;
+}
+
+Fix32 operator%(Fix32 a, Fix32 b) {
+	if unlikely(a.is_nan() || b.is_nan()) {
+		return Fix32::NaN;
+	}
+	if unlikely(a.is_infinity() || b._value == 0) {
+		return Fix32::NaN;
+	}
+	if unlikely(b.is_infinity()) {
+		return a;
+	}
+	return Fix32::from_raw(a._value % b._value);
 }
 
 Fix32 operator/(Fix32 a, Fix32 b) {
 	if unlikely(a.is_nan() || b.is_nan()) {
-		return Fix32::NOT_A_NUMBER;
+		return Fix32::NaN;
 	}
 	if unlikely((a._value == 0 && b._value == 0) || (a.is_infinity() && b.is_infinity())) {
-		return Fix32::NOT_A_NUMBER;
+		return Fix32::NaN;
 	}
 	if (a._value == 0) {
 		return Fix32::ZERO;
 	}
 	if (b._value == 0) {
-		return a._value > 0 ? Fix32::POSITIVE_INFINITY : Fix32::NEGATIVE_INFINITY;
+		return a._value > 0 ? Fix32::INF : -Fix32::INF;
 	}
 	auto[r, overflow] = safe_shl32_div(a._value, b._value);
 	if likely(!overflow) {
 		return Fix32::from_raw(r);
 	}
-	return overflow > 0 ? Fix32::POSITIVE_INFINITY : Fix32::NEGATIVE_INFINITY;
+	return overflow > 0 ? Fix32::INF : -Fix32::INF;
 }
 
 Fix32& operator+=(Fix32& a, Fix32 b) {
@@ -510,45 +537,31 @@ Fix32& operator/=(Fix32& a, Fix32 b) {
 	return a = a / b;
 }
 
+Fix32& operator%=(Fix32& a, Fix32 b) {
+	return a = a % b;
+}
+
 bool operator>(Fix32 a, Fix32 b) {
-	if unlikely(a.is_nan() || b.is_nan()) {
-		return false;
-	}
 	return a.compare(b) > 0;
 }
 
 bool operator>=(Fix32 a, Fix32 b) {
-	if unlikely(a.is_nan() || b.is_nan()) {
-		return false;
-	}
 	return a.compare(b) >= 0;
 }
 
 bool operator<(Fix32 a, Fix32 b) {
-	if unlikely(a.is_nan() || b.is_nan()) {
-		return false;
-	}
 	return a.compare(b) < 0;
 }
 
 bool operator<=(Fix32 a, Fix32 b) {
-	if unlikely(a.is_nan() || b.is_nan()) {
-		return false;
-	}
 	return a.compare(b) <= 0;
 }
 
 bool operator==(Fix32 a, Fix32 b) {
-	if unlikely(a.is_nan() || b.is_nan()) {
-		return false;
-	}
 	return a.compare(b) == 0;
 }
 
 bool operator!=(Fix32 a, Fix32 b) {
-	if unlikely(a.is_nan() && b.is_nan()) {
-		return true;
-	}
 	return a.compare(b) != 0;
 }
 
@@ -573,31 +586,31 @@ inline Fix32 Fix32::from_raw(int64_t value) {
 
 Fix32 Fix32::from_integer(int value) {
 	if unlikely(value == i32limits::min()) {
-		return NEGATIVE_INFINITY;
+		return -INF;
 	}
 	return Fix32::from_raw((int64_t)value << 32);
 }
 
 Fix32 Fix32::from_integer(uint32_t value) {
 	if unlikely(value > MAX_RAW) {
-		return POSITIVE_INFINITY;
+		return INF;
 	}
 	return Fix32::from_raw((int64_t)value << 32);
 }
 
 Fix32 Fix32::from_integer(int64_t value) {
 	if unlikely(value > MAX_RAW) {
-		return POSITIVE_INFINITY;
+		return INF;
 	}
 	if unlikely(value < MIN_RAW) {
-		return NEGATIVE_INFINITY;
+		return -INF;
 	}
 	return Fix32::from_raw(value << 32);
 }
 
 Fix32 Fix32::from_integer(uint64_t value) {
 	if unlikely(value > (uint64_t)MAX_RAW) {
-		return POSITIVE_INFINITY;
+		return INF;
 	}
 	return Fix32((int64_t)value << 32);
 }
@@ -605,13 +618,13 @@ Fix32 Fix32::from_integer(uint64_t value) {
 Fix32 Fix32::from_real(float value) {
 	using flimits = std::numeric_limits<float>;
 	if unlikely(value != value) {
-		return NOT_A_NUMBER;
+		return NaN;
 	}
 	if unlikely(value == flimits::infinity()) {
-		return POSITIVE_INFINITY;
+		return INF;
 	}
 	if unlikely(value == -flimits::infinity()) {
-		return NEGATIVE_INFINITY;
+		return -INF;
 	}
 	if (value == 0) {
 		return { 0 };
@@ -643,13 +656,13 @@ Fix32 Fix32::from_real(float value) {
 Fix32 Fix32::from_real(double value) {
 	using flimits = std::numeric_limits<double>;
 	if unlikely(value != value) {
-		return NOT_A_NUMBER;
+		return NaN;
 	}
 	if unlikely(value == flimits::infinity()) {
-		return POSITIVE_INFINITY;
+		return INF;
 	}
 	if unlikely(value == -flimits::infinity()) {
-		return NEGATIVE_INFINITY;
+		return -INF;
 	}
 	if (value == 0) {
 		return { 0 };
@@ -704,11 +717,11 @@ Fix32::Fix32(double value)
 }
 
 bool Fix32::is_positive_infinity() const {
-	return _value == POSITIVE_INFINITY._value;
+	return _value == INF_RAW;
 }
 
 bool Fix32::is_negative_infinity() const {
-	return _value == NEGATIVE_INFINITY._value;
+	return _value == -INF_RAW;
 }
 
 bool Fix32::is_infinity() const {
@@ -716,11 +729,11 @@ bool Fix32::is_infinity() const {
 }
 
 int Fix32::infinity_sign() const {
-	return _value == NEGATIVE_INFINITY._value ? -1 : _value == POSITIVE_INFINITY._value ? 1 : 0;
+	return _value == -INF_RAW ? -1 : _value == INF_RAW ? 1 : 0;
 }
 
 bool Fix32::is_nan() const {
-	return _value == NOT_A_NUMBER._value;
+	return _value == NaN_RAW;
 }
 
 template<>
@@ -797,31 +810,32 @@ long double Fix32::to_real<long double>() const {
 	}
 }
 
-int Fix32::compare(Fix32 b) const {
-	if (this->_value > b._value) { return 1; }
-	if (this->_value < b._value) { return -1; }
-	return 0;
+partial_ordering Fix32::compare(Fix32 b) const {
+	if unlikely(this->_value == NaN_RAW || b._value == NaN_RAW) { return partial_ordering::unordered; }
+	if (this->_value > b._value) { return partial_ordering::greater; }
+	if (this->_value < b._value) { return partial_ordering::less; }
+	return partial_ordering::equivalent;
 }
 
 const int64_t Fix32::ZERO_RAW = 0;
 const int64_t Fix32::ONE_RAW = 1ll << 32;
 const int64_t Fix32::MAX_RAW = i64limits::max() - 1;
 const int64_t Fix32::MIN_RAW = i64limits::min() + 2;
-const int64_t Fix32::MAX_INTEGER_RAW = (int64_t)i32limits::max() << 32;
-const int64_t Fix32::MIN_INTEGER_RAW = (int64_t)((uint64_t)-i32limits::max() << 32);
-const int64_t Fix32::POSITIVE_INFINITY_RAW = i64limits::max();
-const int64_t Fix32::NEGATIVE_INFINITY_RAW = i64limits::min() + 1;
-const int64_t Fix32::NOT_A_NUMBER_RAW = i64limits::min();
+const int64_t Fix32::MAX_INT_RAW = (int64_t)i32limits::max() << 32;
+const int64_t Fix32::MIN_INT_RAW = (int64_t)((uint64_t)-i32limits::max() << 32);
+const int64_t Fix32::INF_RAW = i64limits::max();
+const int64_t Fix32::NaN_RAW = i64limits::min();
+const int64_t Fix32::DELTA_RAW = 1;
 
 const Fix32 Fix32::ZERO{ Fix32::from_raw(Fix32::ZERO_RAW) };
 const Fix32 Fix32::ONE{ Fix32::from_raw(Fix32::ONE_RAW) };
 const Fix32 Fix32::MAX{ Fix32::from_raw(Fix32::MAX_RAW) };
 const Fix32 Fix32::MIN{ Fix32::from_raw(Fix32::MIN_RAW) };
-const Fix32 Fix32::MAX_INTEGER{ Fix32::from_raw(Fix32::MAX_INTEGER_RAW) };
-const Fix32 Fix32::MIN_INTEGER{ Fix32::from_raw(Fix32::MIN_INTEGER_RAW) };
-const Fix32 Fix32::POSITIVE_INFINITY{ Fix32::from_raw(Fix32::POSITIVE_INFINITY_RAW) };
-const Fix32 Fix32::NEGATIVE_INFINITY{ Fix32::from_raw(Fix32::NEGATIVE_INFINITY_RAW) };
-const Fix32 Fix32::NOT_A_NUMBER{ Fix32::from_raw(Fix32::NOT_A_NUMBER_RAW) };
+const Fix32 Fix32::MAX_INT{ Fix32::from_raw(Fix32::MAX_INT_RAW) };
+const Fix32 Fix32::MIN_INT{ Fix32::from_raw(Fix32::MIN_INT_RAW) };
+const Fix32 Fix32::INF{ Fix32::from_raw(Fix32::INF_RAW) };
+const Fix32 Fix32::NaN{ Fix32::from_raw(Fix32::NaN_RAW) };
+const Fix32 Fix32::DELTA{ Fix32::from_raw(Fix32::DELTA_RAW) };
 
 template float Fix32::to_real<float>() const;
 template double Fix32::to_real<double>() const;
