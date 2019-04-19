@@ -420,7 +420,7 @@ Fix32 operator+(Fix32 a) {
 }
 
 Fix32 operator-(Fix32 a) {
-	return Fix32::from_raw((int64_t)(~(uint64_t)a._value + 1));
+	return Fix32::from_raw((int64_t)(~(uint64_t)a._value + 1ull));
 }
 
 Fix32 operator+(Fix32 a, Fix32 b) {
@@ -437,7 +437,7 @@ Fix32 operator+(Fix32 a, Fix32 b) {
 		return b;
 	}
 	int64_t raw_result = (int64_t)((uint64_t)a._value + (uint64_t)b._value);
-	if unlikely((a._value ^ b._value) > 0 && (a._value ^ raw_result) < 0) {
+	if unlikely((a._value ^ b._value) >= 0 && (a._value ^ raw_result) < 0) {
 		//操作数同号，结果与操作数异号，溢出
 		return raw_result > 0 ? -Fix32::INF : Fix32::INF;
 	}

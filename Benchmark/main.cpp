@@ -198,6 +198,7 @@ void knuth_uint96_div(benchmark::State& state) {
 		state.ResumeTiming();
 		benchmark::DoNotOptimize(shifted_uint64_div(a, b));
 	}
+	state.SetItemsProcessed(state.iterations());
 }
 
 BENCHMARK(knuth_uint96_div)->Apply(uint96div_arguments_applier);
@@ -216,6 +217,7 @@ void boost_uint96_div(benchmark::State& state) {
 		state.ResumeTiming();
 		benchmark::DoNotOptimize((uint128_t(a) << 32) / b);
 	}
+	state.SetItemsProcessed(state.iterations());
 }
 
 BENCHMARK(boost_uint96_div)->Apply(uint96div_arguments_applier);
@@ -234,6 +236,7 @@ void fix32_int96_div(benchmark::State& state) {
 		state.ResumeTiming();
 		benchmark::DoNotOptimize(int128_div_rem(a << 32, a >> 32, b));
 	}
+	state.SetItemsProcessed(state.iterations());
 }
 
 BENCHMARK(fix32_int96_div)->Apply(uint96div_arguments_applier);
