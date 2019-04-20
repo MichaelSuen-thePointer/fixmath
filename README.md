@@ -13,19 +13,25 @@ Named Fix**32**, but its 64 bit wide.
 1. Hand written soft 128bit multiplication, division and modulo (need platform specific optimization)
 1. `INT64_MAX` is used internally to represent `+infinity`, `INT64_MIN+1` represents `-infinity` and `INT64_MIN` represents `NaN`
 
+## Discoveries
+1. Multiprecision divison algorithm introduced in Knuth's TAOCP Vol.2 is **faster** than shift-subtraction division, about 100ns
+2. 128bit mutiplication costs ~400ns on Intel Core i7 8700 and ~150ns on AMD Ryzen R7 2700X
+3. 128bit division costs ~400ns on both Intel and AMD
+
 ## TODO
-1. Test cases on normal/overflow construction
-1. Test cases on normal/overflow multiplication/division
-1. Test cases on overflow addition/subtraction
-1. Test cases on comparison
-1. Test cases on converting from/to floating points
-1. Unary operators
-1. **Rethinking rounding behavior**
-1. Math function implementation: sin, cos, log, exp...
-1. Test cases on math functions
-1. **Unsafe version**: Overflow unaware and only 0/0 produces NaN
-1. Optimize 128bit multiplication/division
-1. Python bindings
+- [ ] Test cases on normal/overflow construction
+- [ ] Test cases on normal/overflow multiplication/division
+- [x] Test cases on overflow addition/subtraction
+- [ ] Test cases on comparison
+- [ ] Test cases on constants
+- [ ] Test cases on converting from/to floating points
+- [x] Unary operators
+- [ ] **Rethinking rounding behavior**
+- [ ] Math function implementation: sin, cos, log, exp...
+- [ ] Test cases on math functions
+- [ ] **Unsafe version**: Overflow unaware and only 0/0 produces NaN
+- [x] Optimize 128bit multiplication/division
+- [ ] Python bindings
 
 
 **still under construction**
