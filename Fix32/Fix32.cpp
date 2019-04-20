@@ -598,24 +598,24 @@ Fix32 Fix32::from_integer(int value) {
 }
 
 Fix32 Fix32::from_integer(uint32_t value) {
-	if unlikely(value > MAX_RAW) {
+	if unlikely(value > (uint32_t)i32limits::max()) {
 		return INF;
 	}
 	return Fix32::from_raw((int64_t)value << 32);
 }
 
 Fix32 Fix32::from_integer(int64_t value) {
-	if unlikely(value > MAX_RAW) {
+	if unlikely(value > i32limits::max()) {
 		return INF;
 	}
-	if unlikely(value < MIN_RAW) {
+	if unlikely(value < i32limits::min()+1) {
 		return -INF;
 	}
 	return Fix32::from_raw(value << 32);
 }
 
 Fix32 Fix32::from_integer(uint64_t value) {
-	if unlikely(value > (uint64_t)MAX_RAW) {
+	if unlikely(value > (uint64_t)i32limits::max()) {
 		return INF;
 	}
 	return Fix32((int64_t)value << 32);
@@ -650,8 +650,11 @@ Fix32 Fix32::from_real(float value) {
 		frac |= 0x80'0000;
 		int64_t raw = frac;
 		auto shift_amount = 32 - 23 + exp;
-		if (shift_amount > 63 || shift_amount < -63) {
+		if unlikely(shift_amount < -63) {
 			return { 0 };
+		}
+		if unlikely(shift_amount > clzll(raw) - 1) {
+			return sign ? -Fix32::INF : Fix32::INF;
 		}
 		raw = shift_amount < 0 ? raw >> -shift_amount : raw << shift_amount;
 		return Fix32::from_raw(sign ? -raw : raw);
@@ -689,8 +692,11 @@ Fix32 Fix32::from_real(double value) {
 		frac |= 0x10'0000'0000'0000;
 		int64_t raw = frac;
 		auto shift_amount = 32 - 52 + exp;
-		if (shift_amount > 63 || shift_amount < -63) {
+		if unlikely(shift_amount < -63) {
 			return { 0 };
+		}
+		if unlikely(shift_amount > clzll(raw) - 1) {
+			return sign ? -Fix32::INF : Fix32::INF;
 		}
 		raw = shift_amount < 0 ? raw >> -shift_amount : raw << shift_amount;
 		return Fix32::from_raw(sign ? -raw : raw);

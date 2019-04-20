@@ -299,6 +299,8 @@ BOOST_AUTO_TEST_CASE(constants) {
 
 	BOOST_TEST(Fix32::MAX - Fix32::MAX_INT + Fix32::DELTA == Fix32::ONE - Fix32::DELTA);
 	BOOST_TEST(Fix32::MIN - Fix32::MIN_INT - Fix32::DELTA == -Fix32::ONE + Fix32::DELTA);
+
+	BOOST_TEST(Fix32(1 / 4294967296.0) == Fix32::DELTA);
 }
 
 BOOST_AUTO_TEST_CASE(mul_div_normal_case) {
@@ -381,4 +383,60 @@ BOOST_AUTO_TEST_CASE(mul_div_overflow_case) {
 	BOOST_TEST(-Fix32(2) * Fix32(1073741824) == -Fix32::INF);
 	BOOST_TEST(-Fix32(2) * -Fix32(1073741824) == Fix32::INF);
 	BOOST_TEST(Fix32(2) * -Fix32(1073741824) == -Fix32::INF);
+}
+
+BOOST_AUTO_TEST_CASE(normal_construction) {
+	BOOST_TEST(Fix32(1) == Fix32(1));
+	BOOST_TEST(Fix32(1) == Fix32(1));
+	BOOST_TEST(Fix32(2147483647) == Fix32(2147483647));
+	BOOST_TEST(Fix32(-2147483647) == Fix32(-2147483647));
+
+
+	BOOST_TEST(Fix32(0.5) == Fix32(1) / Fix32(2));
+	BOOST_TEST(Fix32(1.5) == Fix32(1) + Fix32(0.5));
+	BOOST_TEST(Fix32(2147483647.0) == Fix32(2147483647));
+	BOOST_TEST(Fix32(-2147483647.0) == Fix32(-2147483647));
+
+
+	BOOST_TEST(Fix32(0.5f) == Fix32(1) / Fix32(2));
+	BOOST_TEST(Fix32(1.5f) == Fix32(1) + Fix32(0.5));
+}
+
+BOOST_AUTO_TEST_CASE(overflow_construction) {
+	BOOST_TEST(Fix32(2147483648ll) == Fix32::INF);
+	BOOST_TEST(Fix32(-2147483648ll) == -Fix32::INF);
+	BOOST_TEST(Fix32(-2147483647 - 1) == -Fix32::INF);
+	BOOST_TEST(Fix32(-10000000000000) == -Fix32::INF);
+	BOOST_TEST(Fix32(10000000000000) == Fix32::INF);
+	BOOST_TEST(Fix32(100000000000000ull) == Fix32::INF);
+
+	BOOST_TEST(Fix32(2147483648.0) == Fix32::INF);
+	BOOST_TEST(Fix32(-2147483648.0) == -Fix32::INF);
+	BOOST_TEST(Fix32(-10000000000000.0) == -Fix32::INF);
+	BOOST_TEST(Fix32(10000000000000.0) == Fix32::INF);
+
+	BOOST_TEST(Fix32(1e100) == Fix32::INF);
+	BOOST_TEST(Fix32(-1e100) == -Fix32::INF);
+
+	BOOST_TEST(Fix32(2147483648.0f) == Fix32::INF);
+	BOOST_TEST(Fix32(-2147483648.0f) == -Fix32::INF);
+	BOOST_TEST(Fix32(-10000000000000.0f) == -Fix32::INF);
+	BOOST_TEST(Fix32(10000000000000.0f) == Fix32::INF);
+
+	BOOST_TEST(Fix32(1e20f) == Fix32::INF);
+	BOOST_TEST(Fix32(-1e20f) == -Fix32::INF);
+
+	//float cannot represent INT_MAX precisely
+	BOOST_TEST(Fix32(2147483647.0f) == Fix32::INF);
+	BOOST_TEST(Fix32(-2147483647.0f) == -Fix32::INF);
+}
+
+BOOST_AUTO_TEST_CASE(inf_nan_construction) {
+	BOOST_TEST(Fix32(std::numeric_limits<float>::infinity()) == Fix32::INF);
+	BOOST_TEST(Fix32(-std::numeric_limits<float>::infinity()) == -Fix32::INF);
+	BOOST_TEST(Fix32(std::numeric_limits<float>::quiet_NaN()).is_nan());
+
+	BOOST_TEST(Fix32(std::numeric_limits<double>::infinity()) == Fix32::INF);
+	BOOST_TEST(Fix32(-std::numeric_limits<double>::infinity()) == -Fix32::INF);
+	BOOST_TEST(Fix32(std::numeric_limits<double>::quiet_NaN()).is_nan());
 }
