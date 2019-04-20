@@ -19,7 +19,7 @@ Named Fix**32**, but its 64 bit wide.
 3. 128bit division costs ~400ns on both Intel and AMD
 
 ## TODO
-- [ ] Test cases on normal/overflow construction
+- [x] Test cases on normal/overflow construction
 - [x] Test cases on normal/overflow multiplication/division
 - [x] Test cases on overflow addition/subtraction
 - [ ] Test cases on comparison
