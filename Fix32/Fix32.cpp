@@ -405,7 +405,7 @@ std::pair<int64_t, int> safe_mul_shr32(int64_t a, int64_t b) {
 	lo = (hi << 32) | (lo >> 32);
 	hi >>= 32;
 	int overflow = 0;
-	if unlikely((int64_t)lo < Fix32::MIN_RAW || (int64_t)lo > Fix32::MAX_RAW) { //低位溢出
+	if unlikely(hi == 0 && (int64_t)lo < 0 || hi == -1 && ((int64_t)lo >= 0 || (int64_t)lo == i64limits::min())) { //低位溢出
 		overflow = hi >= 0 ? 1 : -1;
 	} else if unlikely(hi > 0) {
 		overflow = 1;
@@ -481,6 +481,9 @@ Fix32 operator*(Fix32 a, Fix32 b) {
 	if unlikely((a._value == 0 && b.is_infinity()) || (a.is_infinity() && b._value == 0)) {
 		return Fix32::NaN;
 	}
+	if unlikely(a.is_infinity() || b.is_infinity()) {
+		return (a._value ^ b._value) >= 0 ? Fix32::INF : -Fix32::INF;
+	}
 	auto[r, overflow] = safe_mul_shr32(a._value, b._value);
 	if likely(!overflow) {
 		return Fix32::from_raw(r);
@@ -508,10 +511,13 @@ Fix32 operator/(Fix32 a, Fix32 b) {
 	if unlikely((a._value == 0 && b._value == 0) || (a.is_infinity() && b.is_infinity())) {
 		return Fix32::NaN;
 	}
-	if (a._value == 0) {
+	if unlikely(a.is_infinity()) {
+		return b >= 0 ? a : -a;
+	}
+	if unlikely(b.is_infinity()) {
 		return Fix32::ZERO;
 	}
-	if (b._value == 0) {
+	if unlikely(b._value == 0) {
 		return a._value > 0 ? Fix32::INF : -Fix32::INF;
 	}
 	auto[r, overflow] = safe_shl32_div(a._value, b._value);

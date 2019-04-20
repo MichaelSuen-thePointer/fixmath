@@ -69,8 +69,8 @@ BOOST_AUTO_TEST_CASE(helper_function_int128_mul) {
 	CHECK(-12345678987654321, -98765432123456789);
 	using i64 = std::numeric_limits<int64_t>;
 	CHECK(i64::max(), i64::max());
-	CHECK(i64::max(), i64::min()+1);
-	CHECK(i64::min()+1, i64::max());
+	CHECK(i64::max(), i64::min() + 1);
+	CHECK(i64::min() + 1, i64::max());
 
 	//BOOST_TEST(make_int128_t(int128_mul(i64::min(), i64::min())) == make_int128_t({ 0,0 })); // overflow test
 
@@ -167,7 +167,7 @@ BOOST_AUTO_TEST_CASE(helper_function_shifted_uint64_div) {
 	CHECK(0x1234'5678'1234'5678, 0x1234'5678'1234'5679);
 
 	std::mt19937_64 mtg{ 0 };
-	std::uniform_int_distribution<uint64_t> uid{ u64::min()+1, (uint64_t)i64::max() };
+	std::uniform_int_distribution<uint64_t> uid{ u64::min() + 1, (uint64_t)i64::max() };
 	for (int i = 0; i < 10000; ) {
 		auto a = uid(mtg);
 		auto b = uid(mtg);
@@ -271,16 +271,6 @@ BOOST_AUTO_TEST_CASE(add_sub_overflow_case) {
 	BOOST_TEST(-Fix32::MAX - Fix32::DELTA == -Fix32::INF);
 }
 
-BOOST_AUTO_TEST_CASE(constants) {
-	BOOST_TEST(Fix32::MAX == -Fix32::MIN);
-	BOOST_TEST(-Fix32::MAX == Fix32::MIN);
-	BOOST_TEST(Fix32::MAX_INT == -Fix32::MIN_INT);
-	BOOST_TEST(-Fix32::MAX_INT == Fix32::MIN_INT);
-
-	BOOST_TEST(Fix32::MAX - Fix32::MAX_INT + Fix32::DELTA == Fix32::ONE - Fix32::DELTA);
-	BOOST_TEST(Fix32::MIN - Fix32::MIN_INT - Fix32::DELTA == -Fix32::ONE + Fix32::DELTA);
-}
-
 BOOST_AUTO_TEST_CASE(add_sub_normal_case) {
 	BOOST_TEST(Fix32(1) + Fix32(1) == Fix32(2));
 	BOOST_TEST(Fix32(1) + Fix32(-2) == Fix32(-1));
@@ -301,7 +291,17 @@ BOOST_AUTO_TEST_CASE(add_sub_normal_case) {
 	BOOST_TEST(Fix32(-2147483645) - Fix32(1) == Fix32(-2147483646));
 }
 
-BOOST_AUTO_TEST_CASE(normal_integer_mul_div) {
+BOOST_AUTO_TEST_CASE(constants) {
+	BOOST_TEST(Fix32::MAX == -Fix32::MIN);
+	BOOST_TEST(-Fix32::MAX == Fix32::MIN);
+	BOOST_TEST(Fix32::MAX_INT == -Fix32::MIN_INT);
+	BOOST_TEST(-Fix32::MAX_INT == Fix32::MIN_INT);
+
+	BOOST_TEST(Fix32::MAX - Fix32::MAX_INT + Fix32::DELTA == Fix32::ONE - Fix32::DELTA);
+	BOOST_TEST(Fix32::MIN - Fix32::MIN_INT - Fix32::DELTA == -Fix32::ONE + Fix32::DELTA);
+}
+
+BOOST_AUTO_TEST_CASE(mul_div_normal_case) {
 	BOOST_TEST(Fix32(1) * Fix32(1) == Fix32(1));
 	BOOST_TEST(Fix32(1) / Fix32(1) == Fix32(1));
 	BOOST_TEST(Fix32(1) * Fix32(-2) == Fix32(-2));
@@ -331,4 +331,54 @@ BOOST_AUTO_TEST_CASE(normal_integer_mul_div) {
 	BOOST_TEST(Fix32(1073676289) / Fix32(-32767) == Fix32(-32767));
 	BOOST_TEST(Fix32(-1073676289) / Fix32(-32767) == Fix32(32767));
 	BOOST_TEST(Fix32(-1073676289) / Fix32(32767) == Fix32(-32767));
+
+	BOOST_TEST(Fix32(1024) * Fix32(1024) == Fix32(1048576));
+	BOOST_TEST(Fix32(1048576) / Fix32(1024) == Fix32(1024));
+
+	BOOST_TEST(Fix32(1.5) * Fix32(2) == Fix32(3));
+	BOOST_TEST(Fix32(1.5) / Fix32(2) == Fix32(0.75));
+
+	BOOST_TEST(Fix32::MAX_INT * Fix32::DELTA * 2 == Fix32::ONE - Fix32::DELTA * 2);
+}
+
+BOOST_AUTO_TEST_CASE(mul_div_infinity_case) {
+	BOOST_TEST(Fix32::INF * Fix32(2) == Fix32::INF);
+	BOOST_TEST(Fix32::INF * Fix32(-2) == -Fix32::INF);
+	BOOST_TEST(Fix32(2) * Fix32::INF == Fix32::INF);
+	BOOST_TEST(Fix32(-2) * Fix32::INF == -Fix32::INF);
+	BOOST_TEST(-Fix32::INF * Fix32(2) == -Fix32::INF);
+	BOOST_TEST(-Fix32::INF * Fix32(-2) == Fix32::INF);
+	BOOST_TEST(Fix32(2) * -Fix32::INF == -Fix32::INF);
+	BOOST_TEST(Fix32(-2) * -Fix32::INF == Fix32::INF);
+	BOOST_TEST(Fix32::INF / Fix32(2) == Fix32::INF);
+	BOOST_TEST(Fix32::INF / Fix32(-2) == -Fix32::INF);
+	BOOST_TEST(-Fix32::INF / Fix32(2) == -Fix32::INF);
+	BOOST_TEST(-Fix32::INF / Fix32(-2) == Fix32::INF);
+
+	BOOST_TEST(Fix32::INF / Fix32(0) == Fix32::INF);
+	BOOST_TEST(-Fix32::INF / Fix32(0) == -Fix32::INF);
+
+
+	BOOST_TEST(Fix32::INF * Fix32::INF == Fix32::INF);
+	BOOST_TEST(-Fix32::INF * Fix32::INF == -Fix32::INF);
+	BOOST_TEST(Fix32::INF * -Fix32::INF == -Fix32::INF);
+	BOOST_TEST(-Fix32::INF * -Fix32::INF == Fix32::INF);
+
+	BOOST_TEST(Fix32(2) / Fix32::INF == Fix32::ZERO);
+	BOOST_TEST(Fix32(-2) / Fix32::INF == Fix32::ZERO);
+	BOOST_TEST(Fix32(0) / Fix32::INF == Fix32::ZERO);
+}
+
+BOOST_AUTO_TEST_CASE(mul_div_overflow_case) {
+	BOOST_TEST(Fix32::MAX * 2 == Fix32::INF);
+	BOOST_TEST(Fix32::MAX * -2 == -Fix32::INF);
+	BOOST_TEST(-Fix32::MAX * 2 == -Fix32::INF);
+	BOOST_TEST(-Fix32::MAX * -2 == Fix32::INF);
+
+	BOOST_TEST(-Fix32::MAX * -2 == Fix32::INF);
+
+	BOOST_TEST(Fix32(2) * Fix32(1073741824) == Fix32::INF);
+	BOOST_TEST(-Fix32(2) * Fix32(1073741824) == -Fix32::INF);
+	BOOST_TEST(-Fix32(2) * -Fix32(1073741824) == Fix32::INF);
+	BOOST_TEST(Fix32(2) * -Fix32(1073741824) == -Fix32::INF);
 }
