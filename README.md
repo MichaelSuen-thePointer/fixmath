@@ -20,10 +20,10 @@ Named Fix**32**, but its 64 bit wide.
 
 ## TODO
 - [ ] Test cases on normal/overflow construction
-- [ ] Test cases on normal/overflow multiplication/division
+- [x] Test cases on normal/overflow multiplication/division
 - [x] Test cases on overflow addition/subtraction
 - [ ] Test cases on comparison
-- [ ] Test cases on constants
+- [x] Test cases on constants
 - [ ] Test cases on converting from/to floating points
 - [x] Unary operators
 - [ ] **Rethinking rounding behavior**
