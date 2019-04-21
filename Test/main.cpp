@@ -440,3 +440,67 @@ BOOST_AUTO_TEST_CASE(inf_nan_construction) {
 	BOOST_TEST(Fix32(-std::numeric_limits<double>::infinity()) == -Fix32::INF);
 	BOOST_TEST(Fix32(std::numeric_limits<double>::quiet_NaN()).is_nan());
 }
+
+BOOST_AUTO_TEST_CASE(comparison) {
+	BOOST_TEST(Fix32(1) > Fix32(0));
+	BOOST_TEST(Fix32::DELTA > Fix32(0));
+	BOOST_TEST(Fix32(1.5) > Fix32(1.5)-Fix32::DELTA);
+
+	BOOST_TEST(Fix32(1) < Fix32(2));
+	BOOST_TEST(Fix32::DELTA < Fix32(1));
+	BOOST_TEST(Fix32(1.5) + Fix32::DELTA > Fix32(1.5));
+
+	BOOST_TEST(Fix32(1) >= Fix32(0));
+	BOOST_TEST(Fix32::DELTA >= Fix32(0));
+	BOOST_TEST(Fix32(1.5) >= Fix32(1.5) - Fix32::DELTA);
+
+	BOOST_TEST(Fix32(1) <= Fix32(2));
+	BOOST_TEST(Fix32::DELTA <= Fix32(1));
+	BOOST_TEST(Fix32(1.5) + Fix32::DELTA >= Fix32(1.5));
+
+	BOOST_TEST(Fix32::DELTA != Fix32::ZERO);
+	BOOST_TEST(Fix32::DELTA == Fix32::from_raw(1));
+
+	BOOST_TEST(Fix32::INF > Fix32::MAX);
+	BOOST_TEST(-Fix32::INF < Fix32::MIN);
+
+	BOOST_TEST(Fix32::NaN != Fix32::NaN);
+
+	BOOST_TEST(Fix32::NaN > Fix32::ONE == false);
+	BOOST_TEST(Fix32::NaN < Fix32::ONE == false);
+	BOOST_TEST(Fix32::NaN >= Fix32::ONE == false);
+	BOOST_TEST(Fix32::NaN <= Fix32::ONE == false);
+	BOOST_TEST(Fix32::NaN == Fix32::ONE == false);
+	BOOST_TEST(Fix32::NaN != Fix32::ONE == true);
+}
+
+BOOST_AUTO_TEST_CASE(fix32_to_real) {
+	BOOST_TEST(Fix32(1).to_real<double>() == 1);
+	BOOST_TEST(Fix32(1.5).to_real<double>() == 1.5);
+	BOOST_TEST(Fix32(-1).to_real<double>() == -1);
+	BOOST_TEST(Fix32(-1.5).to_real<double>() == -1.5);
+	BOOST_TEST(Fix32(0).to_real<double>() == 0.0f);
+	BOOST_TEST(Fix32::MAX.to_real<double>() == 2147483648.0 - Fix32::DELTA.to_real<double>());
+	BOOST_TEST(Fix32::MAX_INT.to_real<double>() == 2147483647.0);
+	BOOST_TEST(Fix32::MIN.to_real<double>() == -2147483648.0 + Fix32::DELTA.to_real<double>());
+	BOOST_TEST(Fix32::MIN_INT.to_real<double>() == -2147483647.0);
+
+	BOOST_TEST(Fix32::INF.to_real<double>() == std::numeric_limits<double>::infinity());
+	BOOST_TEST((-Fix32::INF).to_real<double>() == -std::numeric_limits<double>::infinity());
+	BOOST_TEST(Fix32::NaN.to_real<double>() != std::numeric_limits<double>::quiet_NaN());
+
+
+	BOOST_TEST(Fix32(1).to_real<float>() == 1.0f);
+	BOOST_TEST(Fix32(1.5).to_real<float>() == 1.5f);
+	BOOST_TEST(Fix32(-1).to_real<float>() == -1.0f);
+	BOOST_TEST(Fix32(-1.5).to_real<float>() == -1.5f);
+	BOOST_TEST(Fix32(0).to_real<float>() == 0.0f);
+	BOOST_TEST(Fix32::MAX.to_real<float>() == 2147483647.0f);
+	BOOST_TEST(Fix32::MAX_INT.to_real<float>() == 2147483647.0f);
+	BOOST_TEST(Fix32::MIN.to_real<float>() == -2147483647.0f);
+	BOOST_TEST(Fix32::MIN_INT.to_real<float>() == -2147483647.0f);
+
+	BOOST_TEST(Fix32::INF.to_real<float>() == std::numeric_limits<float>::infinity());
+	BOOST_TEST((-Fix32::INF).to_real<float>() == -std::numeric_limits<float>::infinity());
+	BOOST_TEST(Fix32::NaN.to_real<float>() != std::numeric_limits<float>::quiet_NaN());
+}

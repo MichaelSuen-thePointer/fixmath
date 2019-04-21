@@ -608,7 +608,7 @@ Fix32 Fix32::from_integer(int64_t value) {
 	if unlikely(value > i32limits::max()) {
 		return INF;
 	}
-	if unlikely(value < i32limits::min()+1) {
+	if unlikely(value < i32limits::min() + 1) {
 		return -INF;
 	}
 	return Fix32::from_raw(value << 32);
@@ -656,7 +656,16 @@ Fix32 Fix32::from_real(float value) {
 		if unlikely(shift_amount > clzll(raw) - 1) {
 			return sign ? -Fix32::INF : Fix32::INF;
 		}
-		raw = shift_amount < 0 ? raw >> -shift_amount : raw << shift_amount;
+		if (shift_amount < 0) {
+			shift_amount = -shift_amount;
+			auto old_raw = raw;
+			raw >>= shift_amount;
+			if ((old_raw >> (shift_amount - 1)) & 1) {
+				raw += 1;
+			}
+		} else {
+			raw <<= shift_amount;
+		}
 		return Fix32::from_raw(sign ? -raw : raw);
 	}
 	return { 0 };
@@ -698,7 +707,16 @@ Fix32 Fix32::from_real(double value) {
 		if unlikely(shift_amount > clzll(raw) - 1) {
 			return sign ? -Fix32::INF : Fix32::INF;
 		}
-		raw = shift_amount < 0 ? raw >> -shift_amount : raw << shift_amount;
+		if (shift_amount < 0) {
+			shift_amount = -shift_amount;
+			auto old_raw = raw;
+			raw >>= shift_amount;
+			if ((old_raw >> (shift_amount - 1)) & 1) {
+				raw += 1;
+			}
+		} else {
+			raw <<= shift_amount;
+		}
 		return Fix32::from_raw(sign ? -raw : raw);
 	}
 	return { 0 };
@@ -751,14 +769,14 @@ bool Fix32::is_nan() const {
 template<>
 float Fix32::to_real<float>() const {
 	using flimits = std::numeric_limits<float>;
-	if (is_negative_infinity()) {
+	if unlikely(is_nan()) {
+		return flimits::quiet_NaN();
+	}
+	if unlikely(is_negative_infinity()) {
 		return -flimits::infinity();
 	}
-	if (is_positive_infinity()) {
+	if unlikely(is_positive_infinity()) {
 		return flimits::infinity();
-	}
-	if (is_nan()) {
-		return flimits::quiet_NaN();
 	}
 	auto value = _value;
 	if (value == 0) {
@@ -772,7 +790,15 @@ float Fix32::to_real<float>() const {
 
 	auto shamt = 64 - clz - 23;
 	if (shamt > 0) {
-		value >>= shamt;
+		if (((value >> (shamt - 1)) & 1)) {
+			value = (value >> shamt) + 1;
+			if unlikely(value >> 24) {
+				value >>= 1;
+				exp += 1;
+			}
+		} else {
+			value >>= shamt;
+		}
 	} else {
 		value <<= -shamt;
 	}
@@ -783,14 +809,14 @@ float Fix32::to_real<float>() const {
 template<>
 double Fix32::to_real<double>() const {
 	using flimits = std::numeric_limits<double>;
-	if (is_negative_infinity()) {
+	if unlikely(is_nan()) {
+		return flimits::quiet_NaN();
+	}
+	if unlikely(is_negative_infinity()) {
 		return -flimits::infinity();
 	}
-	if (is_positive_infinity()) {
+	if unlikely(is_positive_infinity()) {
 		return flimits::infinity();
-	}
-	if (is_nan()) {
-		return flimits::quiet_NaN();
 	}
 	auto value = _value;
 	if (value == 0) {
@@ -804,7 +830,15 @@ double Fix32::to_real<double>() const {
 
 	auto shamt = 64 - clz - 52;
 	if (shamt > 0) {
-		value >>= shamt;
+		if (((value >> (shamt - 1)) & 1)) {
+			value = (value >> shamt) + 1;
+			if unlikely(value >> 53) {
+				value >>= 1;
+				exp += 1;
+			}
+		} else {
+			value >>= shamt;
+		}
 	} else {
 		value <<= -shamt;
 	}
