@@ -2,6 +2,7 @@
 #include <tuple>
 #include <algorithm>
 #include <iosfwd>
+#include <string>
 
 #if defined __has_include && __has_include(<compare>)
 # include <compare>
@@ -20,67 +21,32 @@ public:
 	const static partial_ordering greater;
 	const static partial_ordering unordered;
 
-	friend constexpr bool operator==(partial_ordering __v, MustBeZeroParam);
-	friend constexpr bool operator!=(partial_ordering __v, MustBeZeroParam);
-	friend constexpr bool operator< (partial_ordering __v, MustBeZeroParam);
-	friend constexpr bool operator<=(partial_ordering __v, MustBeZeroParam);
-	friend constexpr bool operator> (partial_ordering __v, MustBeZeroParam);
-	friend constexpr bool operator>=(partial_ordering __v, MustBeZeroParam);
-	friend constexpr bool operator==(MustBeZeroParam, partial_ordering __v);
-	friend constexpr bool operator!=(MustBeZeroParam, partial_ordering __v);
-	friend constexpr bool operator< (MustBeZeroParam, partial_ordering __v);
-	friend constexpr bool operator<=(MustBeZeroParam, partial_ordering __v);
-	friend constexpr bool operator> (MustBeZeroParam, partial_ordering __v);
-	friend constexpr bool operator>=(MustBeZeroParam, partial_ordering __v);
+	friend constexpr bool operator==(partial_ordering v, MustBeZeroParam);
+	friend constexpr bool operator!=(partial_ordering v, MustBeZeroParam);
+	friend constexpr bool operator< (partial_ordering v, MustBeZeroParam);
+	friend constexpr bool operator<=(partial_ordering v, MustBeZeroParam);
+	friend constexpr bool operator> (partial_ordering v, MustBeZeroParam);
+	friend constexpr bool operator>=(partial_ordering v, MustBeZeroParam);
+	friend constexpr bool operator==(MustBeZeroParam, partial_ordering v);
+	friend constexpr bool operator!=(MustBeZeroParam, partial_ordering v);
+	friend constexpr bool operator< (MustBeZeroParam, partial_ordering v);
+	friend constexpr bool operator<=(MustBeZeroParam, partial_ordering v);
+	friend constexpr bool operator> (MustBeZeroParam, partial_ordering v);
+	friend constexpr bool operator>=(MustBeZeroParam, partial_ordering v);
 };
 
-inline constexpr bool operator==(partial_ordering v, MustBeZeroParam) {
-	return v._value != -127 && v._value == 0;
-}
-
-inline constexpr bool operator< (partial_ordering v, MustBeZeroParam) {
-	return v._value != -127 && v._value < 0;
-}
-
-inline constexpr bool operator<=(partial_ordering v, MustBeZeroParam) {
-	return v._value != -127 && v._value <= 0;
-}
-
-inline constexpr bool operator> (partial_ordering v, MustBeZeroParam) {
-	return v._value != -127 && v._value > 0;
-}
-
-inline constexpr bool operator>=(partial_ordering v, MustBeZeroParam) {
-	return v._value != -127 && v._value >= 0;
-}
-
-inline constexpr bool operator==(MustBeZeroParam, partial_ordering v) {
-	return v._value != -127 && 0 == v._value;
-}
-
-inline constexpr bool operator< (MustBeZeroParam, partial_ordering v) {
-	return v._value != -127 && 0 < v._value;
-}
-
-inline constexpr bool operator<=(MustBeZeroParam, partial_ordering v) {
-	return v._value != -127 && 0 <= v._value;
-}
-
-inline constexpr bool operator> (MustBeZeroParam, partial_ordering v) {
-	return v._value != -127 && 0 > v._value;
-}
-
-inline constexpr bool operator>=(MustBeZeroParam, partial_ordering v) {
-	return v._value != -127 && 0 >= v._value;
-}
-
-inline constexpr bool operator!=(partial_ordering v, MustBeZeroParam) {
-	return v._value == -127 || v._value != 0;
-}
-
-inline constexpr bool operator!=(MustBeZeroParam, partial_ordering v) {
-	return v._value == -127 || v._value != 0;
-}
+inline constexpr bool operator==(partial_ordering v, MustBeZeroParam) { return v._value != -127 && v._value == 0; }
+inline constexpr bool operator< (partial_ordering v, MustBeZeroParam) { return v._value != -127 && v._value < 0; }
+inline constexpr bool operator<=(partial_ordering v, MustBeZeroParam) { return v._value != -127 && v._value <= 0; }
+inline constexpr bool operator> (partial_ordering v, MustBeZeroParam) { return v._value != -127 && v._value > 0; }
+inline constexpr bool operator>=(partial_ordering v, MustBeZeroParam) { return v._value != -127 && v._value >= 0; }
+inline constexpr bool operator==(MustBeZeroParam, partial_ordering v) { return v._value != -127 && 0 == v._value; }
+inline constexpr bool operator< (MustBeZeroParam, partial_ordering v) { return v._value != -127 && 0 < v._value; }
+inline constexpr bool operator<=(MustBeZeroParam, partial_ordering v) { return v._value != -127 && 0 <= v._value; }
+inline constexpr bool operator> (MustBeZeroParam, partial_ordering v) { return v._value != -127 && 0 > v._value; }
+inline constexpr bool operator>=(MustBeZeroParam, partial_ordering v) { return v._value != -127 && 0 >= v._value; }
+inline constexpr bool operator!=(partial_ordering v, MustBeZeroParam) { return v._value == -127 || v._value != 0; }
+inline constexpr bool operator!=(MustBeZeroParam, partial_ordering v) { return v._value == -127 || v._value != 0; }
 
 #endif
 
@@ -116,6 +82,7 @@ public:
 	static Fix32 from_integer(uint64_t value);
 	static Fix32 from_real(float value);
 	static Fix32 from_real(double value);
+	static Fix32 from_string(const std::string& s);
 	Fix32() = default;
 	Fix32(int value);
 	explicit Fix32(uint32_t value);
@@ -132,6 +99,8 @@ public:
 
 	template<class T>
 	T to_real() const;
+
+	std::string to_string() const;
 
 	friend Fix32 operator+(Fix32 a);
 	friend Fix32 operator-(Fix32 a);
