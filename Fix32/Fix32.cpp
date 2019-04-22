@@ -7,6 +7,7 @@
 #include <ostream>
 #include <cassert>
 #include <array>
+#include <string>
 
 #ifdef _MSC_VER
 #  include <intrin.h>
@@ -382,12 +383,12 @@ int64_t mul_shr32(int64_t a, int64_t b) {
 
 std::pair<int64_t, int> safe_shl32_div(int64_t a, int64_t b) {
 	assert(b != 0);
-	int64_t lo;
+	uint64_t lo;
 	int64_t hi;
 	int64_t rem;
 	std::tie(lo, hi, rem) = shifted_int64_div(a, b);
 	int overflow = 0;
-	if unlikely(lo < Fix32::MIN_RAW || lo > Fix32::MAX_RAW) { //低位溢出
+	if unlikely(hi == 0 && (int64_t)lo < 0 || hi == -1 && ((int64_t)lo >= 0 || (int64_t)lo == i64limits::min())) { //低位溢出
 		overflow = hi >= 0 ? 1 : -1;
 	} else if unlikely(hi > 0) {
 		overflow = 1;
