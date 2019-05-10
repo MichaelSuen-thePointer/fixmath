@@ -4,7 +4,7 @@ A 64bit fixed-point number with 32bit integer, 32bit fraction part
 Named Fix**32**, but its 64 bit wide.
 
 ## Features
-1. Representation range \[`-(2^63-2)/2^32`, `(2^63-2)/2^32`\], and it's symmetric
+1. Representation range \[`-(2^64-2)/2^32`, `(2^64-2)/2^32`\], and it's symmetric
 1. `+-infinity` and `NaN` support
 1. Overflow aware, calculation/comparison on `+-infinity` and `NaN` behaves just likes IEEE754 standard
 
@@ -22,14 +22,14 @@ Named Fix**32**, but its 64 bit wide.
 - [x] Test cases on normal/overflow construction
 - [x] Test cases on normal/overflow multiplication/division
 - [x] Test cases on overflow addition/subtraction
-- [ ] Test cases on comparison
+- [x] Test cases on comparison
 - [x] Test cases on constants
 - [ ] Test cases on converting from/to floating points
 - [x] Unary operators
 - [ ] **Rethinking rounding behavior**
 - [ ] Math function implementation: sin, cos, log, exp...
 - [ ] Test cases on math functions
-- [ ] **Unsafe version**: Overflow unaware and only 0/0 produces NaN
+- [ ] **Unsafe version**: Operations still yield inf or NaN but do not propagate
 - [x] Optimize 128bit multiplication/division
 - [ ] Python bindings
 
