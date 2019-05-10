@@ -46,7 +46,7 @@ void fix32_int128_mul(benchmark::State& state)
 	}
 }
 
-BENCHMARK(fix32_int128_mul)->Apply(mul128_arguments_applier);
+//BENCHMARK(fix32_int128_mul)->Apply(mul128_arguments_applier);
 
 void boost_int128_mul(benchmark::State& state)
 {
@@ -62,7 +62,7 @@ void boost_int128_mul(benchmark::State& state)
 	}
 }
 
-BENCHMARK(boost_int128_mul)->Apply(mul128_arguments_applier);
+//BENCHMARK(boost_int128_mul)->Apply(mul128_arguments_applier);
 
 
 tuple<uint64_t, int64_t, int64_t> int128_div_rem(uint64_t low, int64_t high, int64_t divisor);
@@ -115,7 +115,7 @@ void fix32_int128_div_rem(benchmark::State& state)
 	}
 }
 
-BENCHMARK(fix32_int128_div_rem)->Apply(div_rem128_arguments_applier);
+//BENCHMARK(fix32_int128_div_rem)->Apply(div_rem128_arguments_applier);
 
 void boost_int128_div_rem(benchmark::State& state)
 {
@@ -137,7 +137,7 @@ void boost_int128_div_rem(benchmark::State& state)
 	}
 }
 
-BENCHMARK(boost_int128_div_rem)->Apply(div_rem128_arguments_applier);
+//BENCHMARK(boost_int128_div_rem)->Apply(div_rem128_arguments_applier);
 #ifdef _WIN64
 struct retval {
 	uint64_t lo, hi, rem;
@@ -164,8 +164,63 @@ void asm_int128_div_rem(benchmark::State& state)
 	}
 }
 
-BENCHMARK(asm_int128_div_rem)->Apply(div_rem128_arguments_applier);
+//BENCHMARK(asm_int128_div_rem)->Apply(div_rem128_arguments_applier);
 #endif
+
+int clzll(uint64_t value);
+
+int64_t fixmath32_fix32_div(int64_t a, int64_t b)
+{
+	// This uses a hardware 64/64 bit division multiple times, until we have
+	// computed all the bits in (a<<33)/b. Usually this takes 1-3 iterations.
+
+	uint64_t remainder = (a >= 0) ? a : (-a);
+	uint64_t divider = (b >= 0) ? b : (-b);
+	uint64_t quotient = 0;
+	int bit_pos = 33;
+
+	// Kick-start the division a bit.
+	// This improves speed in the worst-case scenarios where N and D are large
+	// It gets a lower estimate for the result by N/(D >> 17 + 1).
+	// if (divider & 0xFFFFFFF000000000LL)
+	// {
+	//     uint64_t shifted_div = ((divider >> 17) + 1);
+	//     quotient = remainder / shifted_div;
+	//     remainder -= ((uint64_t)quotient * divider) >> 17;
+	// }
+
+	// If the divider is divisible by 2^n, take advantage of it.
+	while (!(divider & 0xF) && bit_pos >= 4) {
+		divider >>= 4;
+		bit_pos -= 4;
+	}
+
+	while (remainder && bit_pos >= 0) {
+		// Shift remainder as much as we can without overflowing
+		int shift = clzll(remainder);
+		if (shift > bit_pos) shift = bit_pos;
+		remainder <<= shift;
+		bit_pos -= shift;
+
+		uint64_t div = remainder / divider;
+		remainder = remainder % divider;
+		quotient += div << bit_pos;
+
+		remainder <<= 1;
+		bit_pos--;
+	}
+
+	quotient++;
+
+	int64_t result = quotient >> 1;
+
+	// Figure out the sign of the result
+	if ((a ^ b) & 0x8000000000000000LL) {
+		result = -result;
+	}
+
+	return result;
+}
 
 void uint96div_arguments_applier(benchmark::internal::Benchmark* b)
 {
@@ -240,5 +295,24 @@ void fix32_int96_div(benchmark::State& state) {
 }
 
 BENCHMARK(fix32_int96_div)->Apply(uint96div_arguments_applier);
+
+void fixmath32_div(benchmark::State& state)
+{
+	std::uniform_int_distribution<uint64_t> uid{ 1, 0x7FFF'FFFF };
+	auto ahi = state.range(0);
+	auto alo = state.range(1);
+	auto bhi = state.range(2);
+	auto blo = state.range(3);
+	for (auto _ : state) {
+		state.PauseTiming();
+		auto a = (ahi ? uid(mtg) << 32 : 0) | (alo ? uid(mtg) : 0);
+		auto b = (bhi ? uid(mtg) << 32 : 0) | (blo ? uid(mtg) : 0);
+		state.ResumeTiming();
+		benchmark::DoNotOptimize(fixmath32_fix32_div(a, b));
+	}
+	state.SetItemsProcessed(state.iterations());
+}
+
+BENCHMARK(fixmath32_div)->Apply(uint96div_arguments_applier);
 
 BENCHMARK_MAIN();
