@@ -4,7 +4,7 @@
 #include <iosfwd>
 #include <string>
 
-#if defined __has_include && __has_include(<compare>)
+#if defined __cpp_lib_three_way_comparison
 # include <compare>
 using partial_ordering = std::partial_ordering;
 #else
@@ -66,6 +66,8 @@ public:
 	const static int64_t INF_RAW;
 	const static int64_t NaN_RAW;
 	const static int64_t DELTA_RAW;
+	const static int64_t PI_RAW;
+	const static int64_t E_RAW;
 
 	const static Fix32 ZERO;
 	const static Fix32 ONE;
@@ -76,6 +78,8 @@ public:
 	const static Fix32 INF;
 	const static Fix32 NaN;
 	const static Fix32 DELTA;
+	const static Fix32 PI;
+	const static Fix32 E;
 	static Fix32 from_integer(int value);
 	static Fix32 from_integer(uint32_t value);
 	static Fix32 from_integer(int64_t value);
@@ -101,6 +105,7 @@ public:
 	T to_real() const;
 
 	std::string to_string() const;
+	int64_t to_raw() const;
 
 	friend Fix32 operator+(Fix32 a);
 	friend Fix32 operator-(Fix32 a);
@@ -140,3 +145,13 @@ template<>
 double Fix32::to_real<double>() const;
 template<>
 long double Fix32::to_real<long double>() const;
+
+#if defined _MSC_VER
+#  define likely(expr)    (expr)
+#  define unlikely(expr)  (expr)
+#  define assume(cond)
+#else
+#  define likely(expr)    (__builtin_expect(!!(expr), 1))
+#  define unlikely(expr)  (__builtin_expect(!!(expr), 0))
+#  define assume(cond)    do { if (!(cond)) __builtin_unreachable(); } while (0)
+#endif

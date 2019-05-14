@@ -36,19 +36,13 @@ int clzll(uint64_t value) {
 #  else
 #    error "platform not supported"
 #  endif
-#  define likely(expr)    (expr)
-#  define unlikely(expr)  (expr)
-#  define assume(cond)
 #else
 int clzll(uint64_t value) {
 	return __builtin_clzll(value);
 }
-#  define likely(expr)    (__builtin_expect(!!(expr), 1))
-#  define unlikely(expr)  (__builtin_expect(!!(expr), 0))
-#  define assume(cond)    do { if (!(cond)) __builtin_unreachable(); } while (0)
 #endif
 
-#if !defined __has_include || !__has_include(<compare>)
+#if !defined __cpp_lib_three_way_comparison
 constexpr partial_ordering partial_ordering::less = -1;
 constexpr partial_ordering partial_ordering::equivalent = 0;
 constexpr partial_ordering partial_ordering::greater = 1;
@@ -401,7 +395,7 @@ std::pair<int64_t, int> safe_shl32_div(int64_t a, int64_t b) {
 std::pair<int64_t, int> safe_mul_shr32(int64_t a, int64_t b) {
 	auto[lo, hi] = int128_mul(a, b);
 	auto mask = (uint64_t)(hi >> 63) >> 32;
-	hi += (lo & mask) != 0;
+	hi += lo + mask < lo;
 	lo += mask;
 	lo = (hi << 32) | (lo >> 32);
 	hi >>= 32;
@@ -767,6 +761,11 @@ bool Fix32::is_nan() const {
 	return _value == NaN_RAW;
 }
 
+int64_t Fix32::to_raw() const
+{
+	return _value;
+}
+
 template<>
 float Fix32::to_real<float>() const {
 	using flimits = std::numeric_limits<float>;
@@ -873,6 +872,8 @@ const int64_t Fix32::MIN_INT_RAW = (int64_t)((uint64_t)-i32limits::max() << 32);
 const int64_t Fix32::INF_RAW = i64limits::max();
 const int64_t Fix32::NaN_RAW = i64limits::min();
 const int64_t Fix32::DELTA_RAW = 1;
+const int64_t Fix32::PI_RAW = (3ll << 32) | 0b0010'0100'0011'1111'0110'1010'1000'1000;
+const int64_t Fix32::E_RAW = (2ll << 32) | 0b1011'0111'1110'0001'0101'0001'0110'0010;
 
 const Fix32 Fix32::ZERO{ Fix32::from_raw(Fix32::ZERO_RAW) };
 const Fix32 Fix32::ONE{ Fix32::from_raw(Fix32::ONE_RAW) };
@@ -883,6 +884,9 @@ const Fix32 Fix32::MIN_INT{ Fix32::from_raw(Fix32::MIN_INT_RAW) };
 const Fix32 Fix32::INF{ Fix32::from_raw(Fix32::INF_RAW) };
 const Fix32 Fix32::NaN{ Fix32::from_raw(Fix32::NaN_RAW) };
 const Fix32 Fix32::DELTA{ Fix32::from_raw(Fix32::DELTA_RAW) };
+const Fix32 Fix32::PI{ Fix32::from_raw(Fix32::PI_RAW) };
+const Fix32 Fix32::E{ Fix32::from_raw(Fix32::E_RAW) };
+
 
 template float Fix32::to_real<float>() const;
 template double Fix32::to_real<double>() const;
