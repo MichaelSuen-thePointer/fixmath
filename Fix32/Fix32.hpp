@@ -53,10 +53,13 @@ inline constexpr bool operator!=(MustBeZeroParam, partial_ordering v) { return v
 using std::int64_t;
 using std::uint64_t;
 
+
 class Fix32 {
 	int64_t _value = 0;
+	struct from_raw_init_t {};
+	constexpr Fix32(int64_t raw, from_raw_init_t) : _value(raw) {}
 public:
-	static Fix32 from_raw(int64_t value);
+	constexpr static Fix32 from_raw(int64_t value) { return { value, from_raw_init_t{} }; }
 	const static int64_t ZERO_RAW;
 	const static int64_t ONE_RAW;
 	const static int64_t MIN_RAW;
@@ -78,8 +81,11 @@ public:
 	const static Fix32 INF;
 	const static Fix32 NaN;
 	const static Fix32 DELTA;
-	const static Fix32 PI;
 	const static Fix32 E;
+	const static Fix32 PI;
+	const static Fix32 PI_MUL_2;
+	const static Fix32 PI_DIV_2;
+	const static Fix32 SIN_TABLE_STEP;
 	static Fix32 from_integer(int value);
 	static Fix32 from_integer(uint32_t value);
 	static Fix32 from_integer(int64_t value);
@@ -106,6 +112,8 @@ public:
 
 	std::string to_string() const;
 	int64_t to_raw() const;
+
+	explicit operator int() const { return static_cast<int>(_value >> 32); }
 
 	friend Fix32 operator+(Fix32 a);
 	friend Fix32 operator-(Fix32 a);
