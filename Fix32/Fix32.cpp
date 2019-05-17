@@ -579,12 +579,6 @@ std::ostream& operator<<(std::ostream& os, Fix32 a) {
 	return os << a.to_real<double>();
 }
 
-inline Fix32 Fix32::from_raw(int64_t value) {
-	Fix32 r;
-	r._value = value;
-	return r;
-}
-
 Fix32 Fix32::from_integer(int value) {
 	if unlikely(value == i32limits::min()) {
 		return -INF;
@@ -872,8 +866,8 @@ const int64_t Fix32::MIN_INT_RAW = (int64_t)((uint64_t)-i32limits::max() << 32);
 const int64_t Fix32::INF_RAW = i64limits::max();
 const int64_t Fix32::NaN_RAW = i64limits::min();
 const int64_t Fix32::DELTA_RAW = 1;
-const int64_t Fix32::PI_RAW = (3ll << 32) | 0b0010'0100'0011'1111'0110'1010'1000'1000;
-const int64_t Fix32::E_RAW = (2ll << 32) | 0b1011'0111'1110'0001'0101'0001'0110'0010;
+const int64_t Fix32::PI_RAW = (3ll << 32) | 0b0010'0100'0011'1111'0110'1010'1000'1000ll;
+const int64_t Fix32::E_RAW = (2ll << 32) | 0b1011'0111'1110'0001'0101'0001'0110'0010ll;
 
 const Fix32 Fix32::ZERO{ Fix32::from_raw(Fix32::ZERO_RAW) };
 const Fix32 Fix32::ONE{ Fix32::from_raw(Fix32::ONE_RAW) };
@@ -885,6 +879,9 @@ const Fix32 Fix32::INF{ Fix32::from_raw(Fix32::INF_RAW) };
 const Fix32 Fix32::NaN{ Fix32::from_raw(Fix32::NaN_RAW) };
 const Fix32 Fix32::DELTA{ Fix32::from_raw(Fix32::DELTA_RAW) };
 const Fix32 Fix32::PI{ Fix32::from_raw(Fix32::PI_RAW) };
+const Fix32 Fix32::PI_MUL_2{ Fix32::PI * 2 };
+const Fix32 Fix32::PI_DIV_2{ Fix32::PI / 2 };
+const Fix32 Fix32::SIN_TABLE_STEP{ Fix32::PI / 96 };
 const Fix32 Fix32::E{ Fix32::from_raw(Fix32::E_RAW) };
 
 
