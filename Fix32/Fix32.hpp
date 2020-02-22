@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 #include <tuple>
 #include <algorithm>
@@ -84,8 +86,11 @@ public:
 	const static Fix32 E;
 	const static Fix32 PI;
 	const static Fix32 PI_MUL_2;
+	const static Fix32 PI_DIV_6;
+	const static Fix32 PI_DIV_3;
 	const static Fix32 PI_DIV_2;
 	const static Fix32 SIN_TABLE_STEP;
+
 	static Fix32 from_integer(int value);
 	static Fix32 from_integer(uint32_t value);
 	static Fix32 from_integer(int64_t value);
@@ -93,6 +98,7 @@ public:
 	static Fix32 from_real(float value);
 	static Fix32 from_real(double value);
 	static Fix32 from_string(const std::string& s);
+
 	Fix32() = default;
 	Fix32(int value);
 	explicit Fix32(uint32_t value);

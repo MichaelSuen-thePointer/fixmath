@@ -34,7 +34,16 @@ int clzll(uint64_t value) {
 	}
 }
 #  else
-#    error "platform not supported"
+int clzll(uint64_t x) {
+	int r, q;
+	r = (x > 0xFFFFFFFF) << 5; x >>= r;
+	q = (x > 0xFFFF) << 4; x >>= q; r |= q;
+	q = (x > 0xFF) << 3; x >>= q; r |= q;
+	q = (x > 0xF) << 2; x >>= q; r |= q;
+	q = (x > 0x3) << 1; x >>= q; r |= q;
+	r |= (x >> 1);
+	return r;
+}
 #  endif
 #else
 int clzll(uint64_t value) {
@@ -699,9 +708,17 @@ Fix32 Fix32::from_real(double value) {
 		if (shift_amount < 0) {
 			shift_amount = -shift_amount;
 			auto old_raw = raw;
+			auto sticky_bit = 0;
+			if (shift_amount > 1) {
+				auto sticky_bit_mask = ((uint64_t)(int64_t)(-1)) << (65 - shift_amount) >> (65 - shift_amount);
+				sticky_bit = (raw & sticky_bit_mask) != 0;
+			}
+			auto guard_round_bit = (raw >> (shift_amount - 1)) & 0b11;
 			raw >>= shift_amount;
-			if ((old_raw >> (shift_amount - 1)) & 1) {
-				raw += 1;
+			if (guard_round_bit != 0) {
+				if (guard_round_bit == 0b11 || sticky_bit == 1) {
+					raw += 1;
+				}
 			}
 		} else {
 			raw <<= shift_amount;
@@ -784,14 +801,17 @@ float Fix32::to_real<float>() const {
 
 	auto shamt = 64 - clz - 23;
 	if (shamt > 0) {
-		if (((value >> (shamt - 1)) & 1)) {
-			value = (value >> shamt) + 1;
-			if unlikely(value >> 24) {
-				value >>= 1;
-				exp += 1;
+		auto sticky_bit = 0;
+		if (shamt > 1) {
+			auto sticky_bit_mask = ((uint64_t)(int64_t)(-1)) << (65 - shamt) >> (65 - shamt);
+			sticky_bit = (value & sticky_bit_mask) != 0;
+		}
+		auto guard_round_bit = (value >> (shamt - 1)) & 0b11;
+		value >>= shamt;
+		if (guard_round_bit != 0) {
+			if (guard_round_bit == 0b11 || sticky_bit == 1) {
+				value += 1;
 			}
-		} else {
-			value >>= shamt;
 		}
 	} else {
 		value <<= -shamt;
