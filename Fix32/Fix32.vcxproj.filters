@@ -26,6 +26,9 @@
     <ClInclude Include="Fixmath.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="UncheckedFix32.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Fix32.natvis">

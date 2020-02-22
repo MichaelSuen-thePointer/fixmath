@@ -126,6 +126,7 @@
   <ItemGroup>
     <ClInclude Include="Fix32.hpp" />
     <ClInclude Include="Fixmath.hpp" />
+    <ClInclude Include="UncheckedFix32.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Fix32.natvis">
