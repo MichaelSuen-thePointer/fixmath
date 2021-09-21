@@ -17,9 +17,9 @@ const double pi = std::acos(-1);
 namespace {
 
 
-using i32 = int32_t;
-using i64 = int64_t;
-using u64 = uint64_t;
+using i32 = fixmath::int32_t;
+using i64 = fixmath::int64_t;
+using u64 = fixmath::uint64_t;
 using i32l = std::numeric_limits<i32>;
 using i64l = std::numeric_limits<i64>;
 using f32l = std::numeric_limits<float>;
