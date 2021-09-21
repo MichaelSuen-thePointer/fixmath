@@ -1,5 +1,7 @@
 # fixmath
 
+[![UnitTests](https://github.com/MichaelSuen-thePointer/fixmath/actions/workflows/cmake.yml/badge.svg?branch=master)](https://github.com/MichaelSuen-thePointer/fixmath/actions/workflows/cmake.yml)
+
 A fully templatized fixed point number library. With tweakable fraction precision QM.N, rounding behaviour, saturation mode and more.
 
 Provide math function support for Q32.32 and Q16.16 type, and basic arithmetic operation for all types.
