@@ -13,6 +13,7 @@
 #include <system_error> // for std::errc
 #include <algorithm> // for std::max
 #include <compare> // for std::strong_ordering
+#include <climits> // for CHAR_BIT
 #include "fixmath_config.hpp"
 #include "fixmath_traits.inl"
 

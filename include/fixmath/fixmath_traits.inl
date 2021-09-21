@@ -20,13 +20,13 @@ enum class rounding_mode {
 
 template<
     class underlying_type,
-    underlying_type fraction_bits,
+    underlying_type fraction,
     arithmetic_mode arith_mode,
     rounding_mode rounding_mode
 >
 struct fixed_policy {
     using raw_t = underlying_type;
-    const static raw_t fraction_bits = fraction_bits;
+    const static raw_t fraction_bits = fraction;
     const static bool ignore_mode = arith_mode == arithmetic_mode::Ignore;
     const static bool strict_mode = arith_mode == arithmetic_mode::StrictMode;
     const static bool saturation_mode = arith_mode == arithmetic_mode::SaturationMode;
