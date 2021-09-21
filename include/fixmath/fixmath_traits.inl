@@ -7,6 +7,13 @@
 
 namespace fixmath {
 
+using int32_t = int;
+using uint32_t = unsigned int;
+using int64_t = decltype(0LL);
+using uint64_t = decltype(0ULL);
+
+static_assert(sizeof(int32_t) == 4 && sizeof(int64_t) == 8, "what the fudge");
+
 enum class arithmetic_mode {
     Ignore,
     StrictMode,

@@ -126,8 +126,8 @@ constexpr bool Fixed<policy>::is_inf() const {
 template<class policy>
 constexpr Fixed<policy> operator+(Fixed<policy> a, Fixed<policy> b) {
 	using Fixed = Fixed<policy>;
-	using raw_t = Fixed::raw_t;
-	using uraw_t = Fixed::uraw_t;
+	using raw_t = typename Fixed::raw_t;
+	using uraw_t = typename Fixed::uraw_t;
 	if constexpr (policy::strict_mode) {
 		if (FIXMATH_UNLIKELY(a.is_nan() || b.is_nan())) {
 			return Fixed::nan();
@@ -164,8 +164,8 @@ constexpr Fixed<policy> operator+(Fixed<policy> a, Fixed<policy> b) {
 template<class policy>
 constexpr Fixed<policy> operator-(Fixed<policy> a, Fixed<policy> b) {
 	using Fixed = Fixed<policy>;
-	using raw_t = Fixed::raw_t;
-	using uraw_t = Fixed::uraw_t;
+	using raw_t = typename Fixed::raw_t;
+	using uraw_t = typename Fixed::uraw_t;
 	if constexpr (policy::strict_mode) {
 		if (FIXMATH_UNLIKELY(a.is_nan() || b.is_nan())) {
 			return Fixed::nan();
@@ -202,8 +202,8 @@ constexpr Fixed<policy> operator-(Fixed<policy> a, Fixed<policy> b) {
 template<class policy>
 constexpr Fixed<policy> operator*(Fixed<policy> a, Fixed<policy> b) {
 	using Fixed = Fixed<policy>;
-	using raw_t = Fixed::raw_t;
-	using uraw_t = Fixed::uraw_t;
+	using raw_t = typename Fixed::raw_t;
+	using uraw_t = typename Fixed::uraw_t;
 	if constexpr (policy::strict_mode) {
 		if (FIXMATH_UNLIKELY(a.is_nan() || b.is_nan())) {
 			return Fixed::nan();
@@ -256,8 +256,8 @@ constexpr Fixed<policy> operator*(Fixed<policy> a, Fixed<policy> b) {
 template<class policy>
 constexpr Fixed<policy> operator/(Fixed<policy> a, Fixed<policy> b) {
 	using Fixed = Fixed<policy>;
-	using raw_t = Fixed::raw_t;
-	using uraw_t = Fixed::uraw_t;
+	using raw_t = typename Fixed::raw_t;
+	using uraw_t = typename Fixed::uraw_t;
 	if constexpr (policy::strict_mode) {
 		if (FIXMATH_UNLIKELY(a.is_nan() || b.is_nan())) {
 			return Fixed::nan();
@@ -401,8 +401,8 @@ constexpr Fixed<policy> operator+(Fixed<policy> a) {
 template<class policy>
 constexpr Fixed<policy> operator-(Fixed<policy> a) {
 	using Fixed = Fixed<policy>;
-	using raw_t = Fixed::raw_t;
-	using uraw_t = Fixed::uraw_t;
+	using raw_t = typename Fixed::raw_t;
+	using uraw_t = typename Fixed::uraw_t;
 	return Fixed::from_raw(raw_t(0 - uraw_t(a.raw())));
 }
 
@@ -421,7 +421,7 @@ operator<=>(Fixed<policy> a, Fixed<policy> b) {
 			? ::std::partial_ordering::greater
 		: a.raw() < b.raw()
 			? ::std::partial_ordering::less
-		: ::std::partial_ordering::equivlant;
+		: ::std::partial_ordering::equivalant;
 	} else {
 		return a.raw() == b.raw()
 			? ::std::strong_ordering::equal
