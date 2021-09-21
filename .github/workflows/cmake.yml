@@ -1,4 +1,4 @@
-name: CMake
+name: UnitTests
 
 on:
   push:
@@ -9,6 +9,8 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Debug
+  CC: gcc-10
+  CXX: g++-10
 
 jobs:
   build:
@@ -19,6 +21,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Install Latest Compilers
+      run: sudo apt update && sudo apt install gcc-10 g++-10 -y
+
     - uses: actions/checkout@v2
 
     - name: Configure CMake
