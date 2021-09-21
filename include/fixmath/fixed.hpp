@@ -22,7 +22,7 @@ namespace fixmath {
 template<class policy>
 class Fixed final {
 public:
-	using raw_t = policy::raw_t;
+	using raw_t = typename policy::raw_t;
 	using uraw_t = std::make_unsigned_t<raw_t>;
 
 	constexpr const static raw_t ALL_BITS          = sizeof(raw_t) * CHAR_BIT;
