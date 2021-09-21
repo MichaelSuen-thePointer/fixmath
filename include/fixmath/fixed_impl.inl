@@ -421,7 +421,7 @@ operator<=>(Fixed<policy> a, Fixed<policy> b) {
 			? ::std::partial_ordering::greater
 		: a.raw() < b.raw()
 			? ::std::partial_ordering::less
-		: ::std::partial_ordering::equivalant;
+		: ::std::partial_ordering::equivalent;
 	} else {
 		return a.raw() == b.raw()
 			? ::std::strong_ordering::equal
