@@ -2,8 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10)
 project(FIXMATH_unittests LANGUAGES CXX)
+enable_testing()
+include(GoogleTest)
 
 # Download and unpack googletest at configure time
 configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
@@ -33,7 +35,10 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
 # Now simply link against gtest or gtest_main as needed. Eg
 add_executable(FIXMATH_unittests unit_tests.cpp)
 target_compile_features(FIXMATH_unittests PRIVATE cxx_std_20)
-target_compile_options(FIXMATH_unittests PRIVATE -O0 -g)
+if (NOT MSVC)
+  target_compile_options(FIXMATH_unittests PRIVATE -O0 -g)
+endif()
 include_directories(${CMAKE_SOURCE_DIR}/../include/fixmath)
 target_link_libraries(FIXMATH_unittests gtest_main)
-add_test(NAME FIXMATH_test COMMAND FIXMATH_unittests)
+
+gtest_discover_tests(FIXMATH_unittests)
