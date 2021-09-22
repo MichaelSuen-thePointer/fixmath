@@ -20,9 +20,9 @@ constexpr Fixed<policy>::Fixed(float value)
         value != value
             ? nan().raw()
         : value > MAX_REPRESENTABLE_FLOAT
-            ? inf().raw()
+            ? max_sat().raw()
         : value < MIN_REPRESENTABLE_FLOAT
-            ? -inf().raw()
+            ? min_sat().raw()
         : policy::rounding
             ? raw_t((value * RATIO) + (value >= 0 ? 0.5f : -0.5f))
         : raw_t(value * RATIO)
@@ -35,9 +35,9 @@ constexpr Fixed<policy>::Fixed(double value)
         value != value
             ? nan().raw()
         : value > MAX_REPRESENTABLE_DOUBLE
-            ? inf().raw()
+            ? max_sat().raw()
         : value < MIN_REPRESENTABLE_DOUBLE
-            ? -inf().raw()
+            ? min_sat().raw()
         : policy::rounding
             ? raw_t((value * RATIO) + (value >= 0 ? 0.5 : -0.5))
         : raw_t(value * RATIO)
@@ -48,9 +48,9 @@ template<class policy>
 constexpr Fixed<policy>::Fixed(int32_t value)
     : value(
         value > MAX_REPRESENTABLE_INT32
-            ? inf().raw()
+            ? max_sat().raw()
         : value < MIN_REPRESENTABLE_INT32
-            ? -inf().raw()
+            ? min_sat().raw()
         : value * RATIO
     )
 {}
@@ -150,11 +150,11 @@ constexpr Fixed<policy> operator+(Fixed<policy> a, Fixed<policy> b) {
 		r = _fm_checked_add(a.raw(), b.raw(), overflow);
 		if (FIXMATH_UNLIKELY(overflow)) {
 			// same check in strict_mode or saturate_mode
-			return r > 0 ? -Fixed::inf() : Fixed::inf();
+			return r > 0 ? Fixed::min_sat() : Fixed::max_sat();
 		}
 		if constexpr (policy::strict_mode) {
 			if (FIXMATH_UNLIKELY(r == Fixed::nan().raw())) {
-				return -Fixed::inf();
+				return Fixed::min_sat();
 			}
 		}
 	}
@@ -188,11 +188,11 @@ constexpr Fixed<policy> operator-(Fixed<policy> a, Fixed<policy> b) {
 		r = _fm_checked_sub(a.raw(), b.raw(), overflow);
 		if (FIXMATH_UNLIKELY(overflow)) {
 			// same check in strict_mode or saturate_mode
-			return r > 0 ? -Fixed::inf() : Fixed::inf();
+			return r > 0 ? Fixed::min_sat() : Fixed::max_sat();
 		}
 		if constexpr (policy::strict_mode) {
 			if (FIXMATH_UNLIKELY(r == Fixed::nan().raw())) {
-				return -Fixed::inf();
+				return Fixed::min_sat();
 			}
 		}
 	}
@@ -228,7 +228,7 @@ constexpr Fixed<policy> operator*(Fixed<policy> a, Fixed<policy> b) {
 			if constexpr (!policy::ignore_mode) {
 				// check overfow
 				if (FIXMATH_UNLIKELY(rhi != (r >> 63))) {
-					return rhi > 0 ? Fixed::inf() : -Fixed::inf();
+					return rhi > 0 ? Fixed::max_sat() : Fixed::min_sat();
 				}
 				if constexpr (policy::strict_mode) {
 					if (FIXMATH_UNLIKELY(r == Fixed::nan().raw())) {
@@ -243,10 +243,10 @@ constexpr Fixed<policy> operator*(Fixed<policy> a, Fixed<policy> b) {
 		r64 *= b.raw();
 		r64 = _fm_div2n_round<policy, Fixed::FRACTION_BITS>(r64);
 		if constexpr (!policy::ignore_mode) {
-			if (FIXMATH_UNLIKELY(r64 > Fixed::inf().raw())) {
-				return Fixed::inf();
-			} else if (FIXMATH_UNLIKELY(r64 < -Fixed::inf().raw())) {
-				return -Fixed::inf();
+			if (FIXMATH_UNLIKELY(r64 > Fixed::max_sat().raw())) {
+				return Fixed::max_sat();
+			} else if (FIXMATH_UNLIKELY(r64 < Fixed::min_sat().raw())) {
+				return Fixed::min_sat();
 			}
 		}
 		return Fixed::from_raw(raw_t(r64));
@@ -283,9 +283,9 @@ constexpr Fixed<policy> operator/(Fixed<policy> a, Fixed<policy> b) {
 			if (a.raw() == 0) {
 				return Fixed::nan();
 			} else if (a.raw() > 0) {
-				return Fixed::inf();
+				return Fixed::max_sat();
 			} else {
-				return -Fixed::inf();
+				return Fixed::min_sat();
 			}
 		}
 	}
@@ -342,12 +342,12 @@ constexpr Fixed<policy> operator/(Fixed<policy> a, Fixed<policy> b) {
 	}
 	if constexpr (!policy::ignore_mode) {
 		if (FIXMATH_UNLIKELY(qhi != (qlo >> 63))) {
-			return qhi >= 0 ? Fixed::inf() : -Fixed::inf();
+			return qhi >= 0 ? Fixed::max_sat() : Fixed::min_sat();
 		}
-		if (FIXMATH_UNLIKELY(qlo > Fixed::inf().raw())) {
-			return Fixed::inf();
-		} else if (FIXMATH_UNLIKELY(qlo < -Fixed::inf().raw())) {
-			return -Fixed::inf();
+		if (FIXMATH_UNLIKELY(qlo > Fixed::max_sat().raw())) {
+			return Fixed::max_sat();
+		} else if (FIXMATH_UNLIKELY(qlo < Fixed::min_sat().raw())) {
+			return Fixed::min_sat();
 		}
 	}
 	return Fixed::from_raw(raw_t(qlo));

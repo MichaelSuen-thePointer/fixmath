@@ -48,6 +48,8 @@ public:
 	constexpr static Fixed epsilon() { return Fixed::from_raw(1LL); }
 	constexpr static Fixed nan() { return Fixed::from_raw(std::numeric_limits<raw_t>::min()); }
 	constexpr static Fixed inf() { return Fixed::from_raw(std::numeric_limits<raw_t>::max()); }
+	constexpr static Fixed max_sat() { return Fixed::from_raw(std::numeric_limits<raw_t>::max()); }
+	constexpr static Fixed min_sat() { return Fixed::from_raw(std::numeric_limits<raw_t>::min() + (policy::strict_mode ? 1 : 0)); }
 	constexpr static Fixed max_fix() { return Fixed::from_raw(std::numeric_limits<raw_t>::max() - (policy::strict_mode ? 1 : 0)); }
 	constexpr static Fixed min_fix() { return Fixed::from_raw(std::numeric_limits<raw_t>::min() + (policy::strict_mode ? 2 : 0)); }
 	constexpr static Fixed max_int() { return Fixed(MAX_REPRESENTABLE_INTEGER); }

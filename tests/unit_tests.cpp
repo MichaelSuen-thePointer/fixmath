@@ -30,16 +30,14 @@ using fix32l = std::numeric_limits<fixmath::Fix32>;
 const double ABSERROR = static_cast<double>(fix32l::epsilon());
 
 #define EXPECT_FIX_NEAR(a, b) EXPECT_NEAR((double)(a), (double)(b), ABSERROR)
-#define EXPECT_FIX_POS_OVERFLOW(a) EXPECT_EQ((a), Fix32::inf())
-#define EXPECT_FIX_NEG_OVERFLOW(a) EXPECT_EQ((a), -Fix32::inf())
+#define EXPECT_FIX_POS_OVERFLOW(a) EXPECT_EQ((a), Fix32::max_sat())
+#define EXPECT_FIX_NEG_OVERFLOW(a) EXPECT_EQ((a), Fix32::min_sat())
 #define EXPECT_FIX_DOMAIN_ERROR(a) EXPECT_DEBUG_DEATH((a), ".*")
 
 static_assert(Fix32::MAX_REPRESENTABLE_DOUBLE == 0x1.ffff'ffff'ffff'fp30);
 static_assert(Fix32::MIN_REPRESENTABLE_DOUBLE == -0x1.0p31);
 
 TEST(FIXMATH, INT128MUL) {
-
-	auto r = Fix32(0.0) == 0;
 
 	std::uniform_int_distribution<i64> rand{i64l::min(), i64l::max()};
 	for (int i = 0; i < 1048576; ++i) {
@@ -162,7 +160,14 @@ TEST(FIXMATH, CAST) {
 TEST(FIXMATH, CONSTANT) {
 	EXPECT_EQ(double(Fix32::epsilon()), 2.3283064365386962890625e-10);
 	EXPECT_FALSE(Fix32::nan().is_nan());
-	EXPECT_FALSE(Fix32::inf().is_inf());
+	EXPECT_FALSE(Fix32::max_sat().is_inf());
+	EXPECT_FALSE(Fix32::min_sat().is_inf());
+	EXPECT_EQ(Fix32::min_sat(), Fix32::nan());
+	EXPECT_EQ(Fix32::nan(), Fix32::nan());
+	EXPECT_EQ(-Fix32::min_sat(), Fix32::min_sat());
+	EXPECT_EQ(Fix32::min_sat(), -Fix32::max_sat() - Fix32::epsilon());
+	EXPECT_EQ(Fix32::min_sat(), Fix32::min_fix());
+	EXPECT_EQ(Fix32::max_sat(), Fix32::max_fix());
 }
 
 TEST(FIXMATH, ROUNDING) {
@@ -208,10 +213,10 @@ TEST(FIXMATH, SUB) {
 	EXPECT_FIX_NEAR(Fix32(0.1) - Fix32(1.0), Fix32(-0.9));
 	EXPECT_FIX_NEAR(Fix32(1.1111111) - Fix32(0.22222222), Fix32(0.88888888));
 	EXPECT_FIX_NEAR(Fix32(i32l::max()) - Fix32(i32l::max()), 0);
-	EXPECT_EQ(Fix32(i32l::max()) - Fix32(-i32l::max()), Fix32::inf());
-	EXPECT_EQ(Fix32(-i32l::max()) - Fix32(i32l::max()), -Fix32::inf());
-	EXPECT_EQ(-1 - Fix32::inf(), -Fix32::inf());
-	EXPECT_EQ(Fix32::inf() - Fix32::inf(), 0);
+	EXPECT_EQ(Fix32(i32l::max()) - Fix32(-i32l::max()), Fix32::max_sat());
+	EXPECT_EQ(Fix32(-i32l::max()) - Fix32(i32l::max()), Fix32::min_sat());
+	EXPECT_EQ(-1 - Fix32::max_sat(), Fix32::min_sat());
+	EXPECT_EQ(Fix32::max_sat() - Fix32::max_sat(), 0);
 }
 
 TEST(FIXMATH, ADD) {
@@ -221,8 +226,9 @@ TEST(FIXMATH, ADD) {
 	EXPECT_FIX_NEAR(Fix32(0.1) + Fix32(1.0), Fix32(1.1));
 	EXPECT_FIX_NEAR(Fix32(1.1111111) + Fix32(0.22222222), Fix32(1.33333332));
 	EXPECT_FIX_NEAR(Fix32(i32l::max()) + Fix32(-i32l::max()), 0);
-	EXPECT_EQ(Fix32(i32l::max()) + 1, Fix32::inf());
-	EXPECT_EQ(Fix32(i32l::max()) + Fix32::inf(), Fix32::inf());
+	EXPECT_EQ(Fix32(i32l::max()) + 1, Fix32::max_sat());
+	EXPECT_EQ(Fix32(i32l::max()) + Fix32::max_sat(), Fix32::max_sat());
+	EXPECT_EQ(Fix32::max_sat() + Fix32::min_sat(), -Fix32::epsilon());
 }
 
 TEST(FIXMATH, MUL) {
@@ -238,10 +244,10 @@ TEST(FIXMATH, MUL) {
 	CHECK_FIX_MUL(-ABSERROR, 0);
 	CHECK_FIX_MUL(-1.1111, -0.1);
 	EXPECT_EQ(Fix32(32767) * Fix32(32767), 1073676289);
-	EXPECT_EQ(Fix32(65536) * Fix32(65536), Fix32::inf());
-	EXPECT_EQ(Fix32::max_fix() * Fix32::max_fix(), Fix32::inf());
-	EXPECT_EQ(Fix32::max_fix() * Fix32::min_fix(), -Fix32::inf());
-	EXPECT_EQ(Fix32::min_fix() * Fix32::min_fix(), Fix32::inf());
+	EXPECT_EQ(Fix32(65536) * Fix32(65536), Fix32::max_sat());
+	EXPECT_EQ(Fix32::max_fix() * Fix32::max_fix(), Fix32::max_sat());
+	EXPECT_EQ(Fix32::max_fix() * Fix32::min_fix(), Fix32::min_sat());
+	EXPECT_EQ(Fix32::min_fix() * Fix32::min_fix(), Fix32::max_sat());
 }
 
 TEST(FIXMATH, DIV) {
@@ -257,10 +263,10 @@ TEST(FIXMATH, DIV) {
 	CHECK_FIX_DIV(ABSERROR, -ABSERROR);
 	CHECK_FIX_DIV(-1.234, -4.321);
 	CHECK_FIX_DIV(-1.234, 4.321);
-	EXPECT_EQ(1 / Fix32::epsilon(), Fix32::inf());
-	EXPECT_EQ(1 / -Fix32::epsilon(), -Fix32::inf());
-	EXPECT_EQ(Fix32::max_fix() / Fix32(0.5), Fix32::inf());
-	EXPECT_EQ(Fix32::max_fix() / Fix32(-0.5), -Fix32::inf());
+	EXPECT_EQ(1 / Fix32::epsilon(), Fix32::max_sat());
+	EXPECT_EQ(1 / -Fix32::epsilon(), Fix32::min_sat());
+	EXPECT_EQ(Fix32::max_fix() / Fix32(0.5), Fix32::max_sat());
+	EXPECT_EQ(Fix32::max_fix() / Fix32(-0.5), Fix32::min_sat());
 	EXPECT_EQ(Fix32::max_fix() / Fix32::max_fix(), 1);
 	EXPECT_EQ(Fix32::min_fix() / Fix32::min_fix(), 1);
 	EXPECT_FIX_DOMAIN_ERROR(Fix32(1.1111) / Fix32(0));
