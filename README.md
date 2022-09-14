@@ -6,7 +6,7 @@ A fully templatized fixed point number library. With tweakable fraction precisio
 
 Provide math function support for Q32.32 and Q16.16 type, and basic arithmetic operation for all types.
 
-A experimental project, support C++20 only. (requires `std::bitcast`)
+A experimental project, support C++20 only. (requires `std::bitcast` anc concepts)
 
 Test case in progress, code not compiled, please use with caution.
 # License
