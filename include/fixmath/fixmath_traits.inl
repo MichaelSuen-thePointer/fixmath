@@ -39,24 +39,56 @@ struct fixed_policy {
     const static bool saturation_mode = arith_mode == arithmetic_mode::SaturationMode;
     const static bool rounding = rounding_mode == rounding_mode::RoundToEven;
 
-    static_assert(std::is_signed_v<raw_t>, "underlying_type should be signed");
+    static_assert(::std::is_signed_v<raw_t>, "underlying_type should be signed");
     static_assert(0 < fraction_bits && fraction_bits < sizeof(raw_t) * CHAR_BIT, "fraction bits should between [1, BITS - 1]");
 };
 
-constexpr double _fm_assemble_double(int mantissa_bits, int exponent) {
-    mantissa_bits = std::min(mantissa_bits, 52);
-    uint64_t raw = 0;
-    raw |= uint64_t((exponent + 1023) & 0x7FF) << 52;
-    raw |= (uint64_t(-1) >> 1 >> (63 - mantissa_bits)) << (52 - mantissa_bits);
-    return ::std::bit_cast<double>(raw);
-}
+template<class T>
+struct is_fixed_policy : ::std::false_type {};
 
-constexpr float _fm_assemble_float(int mantissa_bits, int exponent) {
-    mantissa_bits = std::min(mantissa_bits, 23);
-    uint32_t raw = 0;
-    raw |= uint32_t((exponent + 127) & 0xFF) << 23;
-    raw |= (uint32_t(-1) >> 1 >> (31 - mantissa_bits)) << (23 - mantissa_bits);
-    return ::std::bit_cast<float>(raw);
-}
+template<
+    class underlying_type,
+    underlying_type fraction,
+    arithmetic_mode arith_mode,
+    rounding_mode rounding_mode
+>
+struct is_fixed_policy<fixed_policy<underlying_type, fraction, arith_mode, rounding_mode>> : ::std::true_type {};
+
+template<class T>
+constexpr bool is_fixed_policy_v = is_fixed_policy<T>::value;
+
+template<class T>
+concept FixedPolicy = is_fixed_policy_v<T>;
+
+template<FixedPolicy policy>
+class fixed;
+
+template<class T>
+struct is_fixed : ::std::false_type {};
+
+template<FixedPolicy T>
+struct is_fixed<fixed<T>> : ::std::true_type {};
+
+template<class T>
+constexpr bool is_fixed_v = is_fixed<T>::value;
+
+template<class T>
+concept Fixed = is_fixed_v<T>;
+
+template<class T>
+concept PromotesToInt32 = ::std::same_as<decltype(+::std::declval<T>()), int32_t>;
+
+template<class T, class U>
+concept FixedImplicitBinaryOperable = (Fixed<T> && PromotesToInt32<U>)
+                                    || (Fixed<U> && PromotesToInt32<T>);
 
 } // namespace fixmath
+
+namespace std {
+
+template<class T1, class T2> requires ::fixmath::FixedImplicitBinaryOperable<T1, T2>
+struct common_type<T1, T2> {
+    using type = ::std::conditional_t<::fixmath::is_fixed<T1>::value, T1, T2>;
+};
+
+}// namespace std

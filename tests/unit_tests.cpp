@@ -217,6 +217,8 @@ TEST(FIXMATH, SUB) {
 	EXPECT_EQ(Fix32(-i32l::max()) - Fix32(i32l::max()), Fix32::min_sat());
 	EXPECT_EQ(-1 - Fix32::max_sat(), Fix32::min_sat());
 	EXPECT_EQ(Fix32::max_sat() - Fix32::max_sat(), 0);
+	EXPECT_EQ(Fix32(1) - 1, 0);
+	EXPECT_EQ(1 - Fix32(1), 0);
 }
 
 TEST(FIXMATH, ADD) {
@@ -229,6 +231,8 @@ TEST(FIXMATH, ADD) {
 	EXPECT_EQ(Fix32(i32l::max()) + 1, Fix32::max_sat());
 	EXPECT_EQ(Fix32(i32l::max()) + Fix32::max_sat(), Fix32::max_sat());
 	EXPECT_EQ(Fix32::max_sat() + Fix32::min_sat(), -Fix32::epsilon());
+	EXPECT_EQ(Fix32(1) + 1, 2);
+	EXPECT_EQ(1 + Fix32(1), 2);
 }
 
 TEST(FIXMATH, MUL) {
@@ -300,5 +304,24 @@ TEST(FIXMATH, COMPARE) {
 	EXPECT_EQ(Fix32(-ABSERROR) != Fix32(ABSERROR), true);
 }
 
+template<class T, class U> requires FixedImplicitBinaryOperable<T, U>
+constexpr int func(T, U) { return 1; }
+
+template<class T, class U> requires FixedImplicitBinaryOperable<U, T> && std::same_as<T, i32>
+constexpr int func(T, U) { return 2; }
+
+TEST(FIXMATH, CONCEPT) {
+	static_assert(func(1, Fix32(1)) == 2);
+	static_assert(func(Fix32(1), 1) == 1);
+
+	static_cast<const Fix32>(Fix32(1)) + 1;
+
+	static_assert(std::is_same_v<std::common_type_t<Fix32, int>, Fix32>);
+	static_assert(std::is_same_v<std::common_type_t<Fix32, int, int>, Fix32>);
+	static_assert(std::is_same_v<std::common_type_t<int, Fix32>, Fix32>);
+	static_assert(std::is_same_v<std::common_type_t<int, Fix32, Fix32>, Fix32>);
+	static_assert(std::is_same_v<std::common_type_t<Fix32, Fix32>, Fix32>);
+	static_assert(std::is_same_v<std::common_type_t<Fix32, Fix32, Fix32>, Fix32>);
+}
 
 }	// namespace
