@@ -294,8 +294,10 @@ constexpr fixed<policy> operator/(fixed<policy> a, fixed<policy> b) {
 	int64_t rem = 0;
 	if constexpr (sizeof(raw_t) == 8) {
 		// use extended int128 division
-		raw_t _check_bits = a.raw() >> (fixed::ALL_BITS - fixed::FRACTION_BITS - 1); // check for simple division
-		if (FIXMATH_LIKELY(_check_bits == 0 || _check_bits == -1)) {
+		raw_t _check_bits = a.raw() >> (fixed::ALL_BITS - fixed::FRACTION_BITS - 1);
+		raw_t _remain_bits = a.raw() & (fixed::FRACTION_MASK >> 1);
+		if (FIXMATH_LIKELY(_check_bits == 0 || (_check_bits == -1 && _remain_bits))) {
+			// check for simplified division
 			qlo = a.raw() * fixed::RATIO;
 			if constexpr (policy::rounding) {
 				rem = qlo % b.raw();

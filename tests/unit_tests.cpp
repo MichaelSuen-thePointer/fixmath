@@ -267,6 +267,7 @@ TEST(FIXMATH, DIV) {
 	CHECK_FIX_DIV(ABSERROR, -ABSERROR);
 	CHECK_FIX_DIV(-1.234, -4.321);
 	CHECK_FIX_DIV(-1.234, 4.321);
+	EXPECT_EQ(-Fix32(0.5) / -Fix32::epsilon(), Fix32::max_sat());
 	EXPECT_EQ(1 / Fix32::epsilon(), Fix32::max_sat());
 	EXPECT_EQ(1 / -Fix32::epsilon(), Fix32::min_sat());
 	EXPECT_EQ(Fix32::max_fix() / Fix32(0.5), Fix32::max_sat());
