@@ -294,8 +294,8 @@ constexpr fixed<policy> operator/(fixed<policy> a, fixed<policy> b) {
 	int64_t rem = 0;
 	if constexpr (sizeof(raw_t) == 8) {
 		// use extended int128 division
-		const static raw_t _simp_min = fixed::INTEGER_MASK >> 1;
-		const static raw_t _simp_max = fixed::FRACTION_MASK >> 1;
+		const raw_t _simp_min = fixed::INTEGER_MASK >> 1;
+		const raw_t _simp_max = fixed::FRACTION_MASK >> 1;
 		if (FIXMATH_LIKELY(_simp_min < a.raw() && a.raw() <= _simp_max)) {
 			// check for simplified division
 			qlo = a.raw() * fixed::RATIO;
