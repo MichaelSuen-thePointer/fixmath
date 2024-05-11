@@ -8,14 +8,14 @@
 namespace fixmath {
 
 #if FIXMATH_LINUX
-inline int _fm_clzll(uint64_t x) {
+inline int _fm_clz(uint64_t x) {
 	if (x == 0) {
 		return 64;
 	}
 	return __builtin_clzll(x);
 }
 #elif FIXMATH_WIN && FIXMATH_64BIT
-inline int _fm_clzll(uint64_t value) {
+inline int _fm_clz(uint64_t value) {
 	unsigned long leading_zero = 0;
 	if (_BitScanReverse64(&leading_zero, value)) {
 		return static_cast<int>(63 - leading_zero);
@@ -24,7 +24,7 @@ inline int _fm_clzll(uint64_t value) {
 	}
 }
 #elif FIXMATH_WIN && FIXMATH_32BIT
-inline int _fm_clzll(uint64_t value) {
+inline int _fm_clz(uint64_t value) {
 	unsigned long leading_zero = 0;
 	if (_BitScanReverse(&leading_zero, (unsigned long)(value >> 32))) {
 		return static_cast<int>(31 - leading_zero);
@@ -35,7 +35,7 @@ inline int _fm_clzll(uint64_t value) {
 	}
 }
 #else
-inline int _fm_clzll(uint64_t x) {
+inline int _fm_clz(uint64_t x) {
 	int result = 0;
 	if (x == 0) return 64;
 	while (!(x & 0xF000000000000000ULL)) { result += 4; x <<= 4; }

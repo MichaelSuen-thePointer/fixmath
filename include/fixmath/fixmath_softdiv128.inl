@@ -19,7 +19,7 @@ inline uint64_t _softudiv128(uint64_t u1, uint64_t u0, uint64_t v, uint64_t* r) 
 	uint64_t rhat;                                    // A remainder
 	int32_t s;                                        // Shift amount for normalization
 
-	s = _fm_clzll(v);
+	s = _fm_clz(v);
 	if (s > 0) {
 		// Normalize the divisor.
 		v = v << s;

@@ -16,6 +16,7 @@ const double pi = std::acos(-1);
 
 namespace {
 
+using Fix32 = fixed<fixed_policy<int64_t, 32, arithmetic_mode::SaturationMode, rounding_mode::RoundToEven>>;
 
 using i32 = fixmath::int32_t;
 using i64 = fixmath::int64_t;
@@ -25,7 +26,7 @@ using i64l = std::numeric_limits<i64>;
 using f32l = std::numeric_limits<float>;
 using f64l = std::numeric_limits<double>;
 
-using fix32l = std::numeric_limits<fixmath::Fix32>;
+using fix32l = std::numeric_limits<Fix32>;
 
 const double ABSERROR = static_cast<double>(fix32l::epsilon());
 
@@ -303,6 +304,18 @@ TEST(FIXMATH, COMPARE) {
 	EXPECT_EQ(Fix32(ABSERROR) == Fix32(ABSERROR), true);
 	EXPECT_EQ(Fix32(ABSERROR) != Fix32(ABSERROR), false);
 	EXPECT_EQ(Fix32(-ABSERROR) != Fix32(ABSERROR), true);
+}
+
+TEST(FIX32, SQUARE) {
+	EXPECT_FIX_NEAR(sqrt(Fix32(55554288)), sqrt(55554288));
+	EXPECT_FIX_NEAR(sqrt(Fix32(1.1)), sqrt(1.1));
+	EXPECT_FIX_DOMAIN_ERROR(sqrt(Fix32(-1.1)));
+	EXPECT_FIX_DOMAIN_ERROR(sqrt(Fix32(-ABSERROR)));
+	EXPECT_FIX_DOMAIN_ERROR(sqrt(Fix32::min_fix()));
+	EXPECT_FIX_NEAR(sqrt(Fix32(0)), 0);
+	EXPECT_FIX_NEAR(sqrt(Fix32(1.1)), sqrt(1.1));
+	EXPECT_FIX_NEAR(sqrt(Fix32(4)), sqrt(4));
+	EXPECT_FIX_NEAR(sqrt(Fix32(123456789.987654321)), sqrt(123456789.987654321));
 }
 
 template<class T, class U> requires FixedImplicitBinaryOperable<T, U>

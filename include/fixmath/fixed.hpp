@@ -62,6 +62,7 @@ public:
 	static constexpr fixed from_raw(uraw_t v) { return fixed(from_raw_t{}, v); }
 
 	constexpr raw_t raw() const { return value; }
+	constexpr uraw_t uraw() const { return static_cast<uraw_t>(value); }
 
 	constexpr fixed() = default;
 	constexpr fixed(const fixed&) = default;
@@ -90,8 +91,7 @@ private:
 	{}
 };
 
-using Fix32 = fixed<fixed_policy<int64_t, 32, arithmetic_mode::SaturationMode, rounding_mode::RoundToEven>>;
-
 } // namespace fixmath
 
 #include "fixed_impl.inl"
+#include "fixed_math.inl"
