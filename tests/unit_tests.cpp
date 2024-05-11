@@ -16,7 +16,7 @@ const double pi = std::acos(-1);
 
 namespace {
 
-using Fix32 = fixed<fixed_policy<int64_t, 32, arithmetic_mode::SaturationMode, rounding_mode::RoundToEven>>;
+using Fix32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 
 using i32 = fixmath::int32_t;
 using i64 = fixmath::int64_t;
