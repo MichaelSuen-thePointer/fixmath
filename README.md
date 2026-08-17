@@ -58,6 +58,8 @@ ctest --test-dir build -C Debug --output-on-failure
 
 See [AGENTS.md](AGENTS.md) for repository layout, coding conventions, and contribution guidance.
 
+Architecture and arithmetic details are collected in the [documentation index](docs/README.md).
+
 ## AI-Assisted Development
 
 This repository uses AI-assisted development. AI tools may help draft documentation, tests, and code changes. See the [AI-Assisted Contributions](AGENTS.md#ai-assisted-contributions) guidelines for the review and validation requirements applied to generated work.
