@@ -328,14 +328,8 @@ constexpr fixed<policy> operator/(fixed<policy> a, fixed<policy> b) {
 		qhi = qlo >> 63;
 	}
 	if constexpr (policy::rounding) {
-		// clang-format off
-		uint64_t abs_rem = static_cast<uint64_t>(rem) > static_cast<uint64_t>(::std::numeric_limits<int64_t>::min())
-							? static_cast<uint64_t>(-rem)
-							: static_cast<uint64_t>(rem);
-		uint64_t abs_b = static_cast<uint64_t>(b.raw()) > static_cast<uint64_t>(::std::numeric_limits<int64_t>::min())
-		? static_cast<uint64_t>(-b.raw())
-		: static_cast<uint64_t>(b.raw());
-		// clang-format on
+		uint64_t abs_rem = rem < 0 ? -static_cast<uint64_t>(rem) : static_cast<uint64_t>(rem);
+		uint64_t abs_b = b.raw() < 0 ? -static_cast<uint64_t>(b.raw()) : static_cast<uint64_t>(b.raw());
 		bool quo_nonneg = (a.raw() < 0) == (b.raw() < 0);
 		int64_t sign = quo_nonneg ? 1 : -1;
 		int64_t carry = (abs_rem * 2 > abs_b ? 1 : abs_rem * 2 == abs_b ? qlo & 1 : 0) * sign;

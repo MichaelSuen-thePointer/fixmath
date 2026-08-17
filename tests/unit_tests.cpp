@@ -341,6 +341,14 @@ TEST(FIXMATH, DIV) {
 	EXPECT_FIX_DOMAIN_ERROR(Fix32(1.1111) / Fix32(0));
 }
 
+TEST(FIXMATH, DIV_INT32_MIN) {
+	const auto divisor = Fix8Even32::from_raw(i32l::min());
+	EXPECT_EQ((Fix8Even32::from_raw(i32(1)) / divisor).raw(), 0);
+	EXPECT_EQ((Fix8Even32::from_raw(i32(1) << 22) / divisor).raw(), 0);
+	EXPECT_EQ((Fix8Even32::from_raw(i32(3) << 22) / divisor).raw(), -2);
+	EXPECT_EQ((Fix8Even32::from_raw(-(i32(3) << 22)) / divisor).raw(), 2);
+}
+
 TEST(FIXMATH, DIV_SIMPLIFIED_RANGE) {
 	const auto one = Fix48Even64::from_raw(i64(1) << 48);
 	for (i64 raw : {-(i64(1) << 20), i64(-32769), i64(-32768), i64(32767), i64(32768), i64(1) << 20}) {
