@@ -16,7 +16,14 @@ const double pi = std::acos(-1);
 
 namespace {
 
-using Fix32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
+using Fix32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32,
+    fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
+using Fix8Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8,
+    fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
+using Fix8Zero32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8,
+    fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToZero>>;
+using Fix16Even64 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 16,
+    fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 
 using i32 = fixmath::int32_t;
 using i64 = fixmath::int64_t;
@@ -134,7 +141,7 @@ TEST(FIXMATH, CAST) {
 	EXPECT_FIX_NEAR(Fix32(2147483647.99998), 2147483647.99998);
 	EXPECT_FIX_NEAR(Fix32(-2147483647.99998), -2147483647.99998);
 
-	EXPECT_EQ(Fix32(1.16415321826934814453125e-10), Fix32::epsilon());
+	EXPECT_EQ(Fix32(1.16415321826934814453125e-10), Fix32(0));
 
 	EXPECT_FIX_NEAR(Fix32(-2147483648.0), -2147483648.0);
 	EXPECT_FIX_POS_OVERFLOW(Fix32(2147483648.0));
@@ -156,6 +163,44 @@ TEST(FIXMATH, CAST) {
 	EXPECT_EQ(Fix32(-2147483647-1), -2147483647-1);
 	EXPECT_FIX_NEAR(Fix32(26061.96161111111), 26061.9616111111);
 
+}
+
+TEST(FIXMATH, CAST_BINARY_ROUNDING) {
+    static_assert(std::same_as<decltype(_fm_float_to_fixed_raw<i32, 8, true>(0.0f)), i32>);
+    static_assert(std::same_as<decltype(_fm_float_to_fixed_raw<i64, 16, true>(0.0)), i64>);
+    static_assert(Fix8Even32(2.5 / 256).raw() == 2);
+    static_assert(Fix8Even32(3.5 / 256).raw() == 4);
+    static_assert(Fix8Even32(-2.5 / 256).raw() == -2);
+    static_assert(Fix8Even32(-3.5 / 256).raw() == -4);
+
+    EXPECT_EQ(Fix8Even32(2.5f / 256).raw(), 2);
+    EXPECT_EQ(Fix8Even32(3.5f / 256).raw(), 4);
+    EXPECT_EQ(Fix8Even32(-2.5f / 256).raw(), -2);
+    EXPECT_EQ(Fix8Even32(-3.5f / 256).raw(), -4);
+
+    EXPECT_EQ(Fix8Even32(2.5 / 256).raw(), 2);
+    EXPECT_EQ(Fix8Even32(3.5 / 256).raw(), 4);
+    EXPECT_EQ(Fix8Even32(-2.5 / 256).raw(), -2);
+    EXPECT_EQ(Fix8Even32(-3.5 / 256).raw(), -4);
+    EXPECT_EQ(Fix8Even32(std::nextafter(2.5 / 256, 0.0)).raw(), 2);
+    EXPECT_EQ(Fix8Even32(std::nextafter(2.5 / 256, 1.0)).raw(), 3);
+    EXPECT_EQ(Fix8Even32(std::nextafter(-2.5 / 256, 0.0)).raw(), -2);
+    EXPECT_EQ(Fix8Even32(std::nextafter(-2.5 / 256, -1.0)).raw(), -3);
+
+    EXPECT_EQ(Fix16Even64(2.5 / 65536).raw(), 2);
+    EXPECT_EQ(Fix16Even64(3.5 / 65536).raw(), 4);
+    EXPECT_EQ(Fix16Even64(-2.5 / 65536).raw(), -2);
+    EXPECT_EQ(Fix16Even64(-3.5 / 65536).raw(), -4);
+
+    EXPECT_EQ(Fix8Zero32(3.75f / 256).raw(), 3);
+    EXPECT_EQ(Fix8Zero32(-3.75f / 256).raw(), -3);
+    EXPECT_EQ(Fix8Zero32(3.75 / 256).raw(), 3);
+    EXPECT_EQ(Fix8Zero32(-3.75 / 256).raw(), -3);
+
+    EXPECT_EQ(Fix8Even32(-8388608.0).raw(), i32l::min());
+    EXPECT_EQ(Fix8Even32(8388607.99609375).raw(), i32l::max());
+    EXPECT_EQ(Fix8Even32(f32l::denorm_min()).raw(), 0);
+    EXPECT_EQ(Fix8Even32(-f32l::denorm_min()).raw(), 0);
 }
 
 TEST(FIXMATH, CONSTANT) {

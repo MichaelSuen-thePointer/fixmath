@@ -23,9 +23,7 @@ constexpr fixed<policy>::fixed(float value)
             ? max_sat().raw()
         : value < MIN_REPRESENTABLE_FLOAT
             ? min_sat().raw()
-        : policy::rounding
-            ? raw_t((value * RATIO) + (value >= 0 ? 0.5f : -0.5f))
-        : raw_t(value * RATIO)
+        : _fm_float_to_fixed_raw<raw_t, FRACTION_BITS, policy::rounding>(value)
     )
 {}
 
@@ -38,9 +36,7 @@ constexpr fixed<policy>::fixed(double value)
             ? max_sat().raw()
         : value < MIN_REPRESENTABLE_DOUBLE
             ? min_sat().raw()
-        : policy::rounding
-            ? raw_t((value * RATIO) + (value >= 0 ? 0.5 : -0.5))
-        : raw_t(value * RATIO)
+        : _fm_float_to_fixed_raw<raw_t, FRACTION_BITS, policy::rounding>(value)
     )
 {}
 
