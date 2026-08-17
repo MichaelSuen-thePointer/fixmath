@@ -18,6 +18,7 @@ namespace {
 
 using Fix32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 using Fix32Ignore = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::Ignore, fixmath::rounding_mode::RoundToEven>>;
+using Fix32Strict = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::StrictMode, fixmath::rounding_mode::RoundToEven>>;
 using Fix8Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 using Fix8Zero32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToZero>>;
 using Fix3Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 3, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
@@ -212,6 +213,19 @@ TEST(FIXMATH, CONSTANT) {
 	EXPECT_EQ(Fix32::min_sat(), -Fix32::max_sat() - Fix32::epsilon());
 	EXPECT_EQ(Fix32::min_sat(), Fix32::min_fix());
 	EXPECT_EQ(Fix32::max_sat(), Fix32::max_fix());
+}
+
+TEST(FIXMATH, STRICT_CLASSIFICATION) {
+	constexpr auto negative_inf = Fix32Strict::from_raw(-Fix32Strict::inf().raw());
+	static_assert(Fix32Strict::inf().is_inf());
+	static_assert(negative_inf.is_inf());
+	static_assert(!Fix32Strict::nan().is_inf());
+	static_assert(!Fix32Strict(0).is_inf());
+
+	EXPECT_TRUE(Fix32Strict::inf().is_inf());
+	EXPECT_TRUE(negative_inf.is_inf());
+	EXPECT_FALSE(Fix32Strict::nan().is_inf());
+	EXPECT_FALSE(Fix32Strict(0).is_inf());
 }
 
 TEST(FIXMATH, ROUNDING) {

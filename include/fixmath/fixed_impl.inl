@@ -114,7 +114,7 @@ constexpr bool fixed<policy>::is_nan() const {
 template <FixedPolicy policy>
 constexpr bool fixed<policy>::is_inf() const {
 	if constexpr (policy::strict_mode) {
-		return abs(value) == inf().raw();
+		return value == inf().raw() || value == -inf().raw();
 	} else {
 		return false;
 	}
