@@ -14,6 +14,7 @@ This directory documents Fixmath in layers: design constraints, data model, algo
 ## Internals
 
 - [Basic arithmetic](internals/arithmetic.md): integer implementations of addition, subtraction, multiplication, and division, including overflow handling and fast paths.
+- [Offline minimax approximation tool](internals/minimax-approximation.md): planned local coefficient generator, its dependencies, Chebyshev/Remez pipeline, raw-coefficient optimization, artifacts, and verification.
 - [Polynomial evaluation](internals/polynomial.md): raw-coefficient Horner evaluation, fused multiply-add scaling, and when normalization can be deferred.
 - [`sqrt`](internals/sqrt.md): digit-by-digit integer square root, scaling, and rounding.
 
