@@ -1,5 +1,16 @@
 # Offline Minimax Approximation Tool
 
+## Implementation status
+
+The first implementation is available under `tools/approx/`. It supports checked-in JSON specifications for the factored basis `x * q(x^2)`, a shared signed Q format, round-to-even or round-to-zero Horner evaluation, deterministic neighborhood quantization, and sampled verification. Run the Q32.32 sine example with:
+
+```text
+python -m pip install -r tools/approx/requirements.txt
+python tools/approx/generate.py --spec tools/approx/specs/sin_q32_32.json --output build/approx/sin_q32_32
+```
+
+The current verifier honestly labels its result `sampled`; interval-bounded certification and Sollya cross-checking remain later work. A successful run means the configured samples, Remez extrema neighborhoods, overflow checks, and target all passed, not that every raw input was exhaustively proved.
+
 ## Purpose and scope
 
 This document specifies the planned offline tool that will generate, optimize, verify, and emit fixed-point polynomial coefficients for Fixmath elementary functions. It is both the design basis for implementing that tool and the explanation of how generated coefficient tables are produced.

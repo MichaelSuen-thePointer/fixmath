@@ -1,0 +1,24 @@
+{
+  "name": "sin_q32_32",
+  "function": "sin_over_x_squared",
+  "reference_function": "sin",
+  "public_interval": ["0", "pi/4"],
+  "reduced_interval": ["0", "pi^2/16"],
+  "range_reduction": "none; z = round_to_even(x * x)",
+  "basis": {
+    "kind": "factored",
+    "variable": "x_squared",
+    "powers": [0, 1, 2, 3, 4, 5],
+    "reconstruction": "x_times_polynomial"
+  },
+  "degree": 11,
+  "error_objective": "absolute",
+  "q_format": {"width": 64, "fraction_bits": 32},
+  "arithmetic_mode": "SaturationMode",
+  "rounding_mode": "RoundToEven",
+  "precision_digits": 100,
+  "accuracy": {"objective": "absolute", "unit": "ulp", "maximum": 1},
+  "remez": {"max_iterations": 20, "grid_size": 8192, "tolerance": "1e-70"},
+  "quantization": {"radius": 3, "passes": 3},
+  "verification": {"samples": 1000001}
+}
