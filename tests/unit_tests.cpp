@@ -19,6 +19,8 @@ namespace {
 using Fix32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 using Fix8Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 using Fix8Zero32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToZero>>;
+using Fix3Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 3, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
+using Fix3Zero32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 3, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToZero>>;
 using Fix16Even64 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 16, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 using Fix48Even64 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 48, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 
@@ -363,6 +365,20 @@ TEST(FIX32, SQUARE) {
 	EXPECT_FIX_NEAR(sqrt(Fix32(1.1)), sqrt(1.1));
 	EXPECT_FIX_NEAR(sqrt(Fix32(4)), sqrt(4));
 	EXPECT_FIX_NEAR(sqrt(Fix32(123456789.987654321)), sqrt(123456789.987654321));
+}
+
+TEST(FIXMATH, SQRT_ODD_FRACTION_BITS) {
+	EXPECT_EQ(sqrt(Fix3Even32::from_raw(2)).raw(), 4);
+	EXPECT_EQ(sqrt(Fix3Even32::from_raw(8)).raw(), 8);
+	EXPECT_EQ(sqrt(Fix3Even32::from_raw(18)).raw(), 12);
+	EXPECT_EQ(sqrt(Fix3Even32::from_raw(32)).raw(), 16);
+	EXPECT_EQ(sqrt(Fix3Zero32::from_raw(2)).raw(), 4);
+	EXPECT_EQ(sqrt(Fix3Zero32::from_raw(8)).raw(), 8);
+	EXPECT_EQ(sqrt(Fix3Zero32::from_raw(18)).raw(), 12);
+	EXPECT_EQ(sqrt(Fix3Zero32::from_raw(32)).raw(), 16);
+
+	EXPECT_EQ(sqrt(Fix3Even32::from_raw(1)).raw(), 3);
+	EXPECT_EQ(sqrt(Fix3Zero32::from_raw(1)).raw(), 2);
 }
 
 template <class T, class U>

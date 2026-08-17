@@ -34,6 +34,9 @@ constexpr fixed<policy> sqrt(fixed<policy> a) {
 		return 0;
 	}
 	uraw_t value = a.uraw();
+	if constexpr (fixed::FRACTION_BITS & 1) {
+		value <<= 1;
+	}
 	uraw_t root = 0;
 	uraw_t remainder = 0;
 	raw_t start_i = _fm_clz(value) >> 1;
