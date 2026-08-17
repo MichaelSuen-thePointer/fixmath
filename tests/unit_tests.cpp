@@ -273,6 +273,10 @@ TEST(FIXMATH, SUB) {
 	EXPECT_FIX_NEAR(Fix32(i32l::max()) - Fix32(i32l::max()), 0);
 	EXPECT_EQ(Fix32(i32l::max()) - Fix32(-i32l::max()), Fix32::max_sat());
 	EXPECT_EQ(Fix32(-i32l::max()) - Fix32(i32l::max()), Fix32::min_sat());
+	EXPECT_EQ(Fix32::from_raw(i64(0)) - Fix32::min_sat(), Fix32::max_sat());
+	EXPECT_EQ(Fix32::from_raw(i64(-1)) - Fix32::min_sat(), Fix32::max_sat());
+	EXPECT_EQ(Fix8Even32::from_raw(i32(0)) - Fix8Even32::min_sat(), Fix8Even32::max_sat());
+	EXPECT_EQ(Fix8Even32::from_raw(i32(-1)) - Fix8Even32::min_sat(), Fix8Even32::max_sat());
 	EXPECT_EQ(-1 - Fix32::max_sat(), Fix32::min_sat());
 	EXPECT_EQ(Fix32::max_sat() - Fix32::max_sat(), 0);
 	EXPECT_EQ(Fix32(1) - 1, 0);

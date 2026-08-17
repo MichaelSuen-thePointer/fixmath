@@ -42,9 +42,9 @@ constexpr T _fm_checked_sub(T a, T b, U& overflow) {
 	} else {
 		using UT = ::std::make_unsigned_t<T>;
 		UT _a = static_cast<UT>(a);
-		UT _b = static_cast<UT>(0) - static_cast<UT>(b);
-		UT _r = _a + _b;
-		overflow = !!((~(_a ^ _b) & (_a ^ _r)) >> (sizeof(UT) * CHAR_BIT - 1));
+		UT _b = static_cast<UT>(b);
+		UT _r = _a - _b;
+		overflow = !!(((_a ^ _b) & (_a ^ _r)) >> (sizeof(UT) * CHAR_BIT - 1));
 		return _r;
 	}
 #endif
