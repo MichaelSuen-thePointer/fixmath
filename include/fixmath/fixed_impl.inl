@@ -286,6 +286,12 @@ constexpr fixed<policy> operator/(fixed<policy> a, fixed<policy> b) {
 			}
 		}
 	}
+	if constexpr (policy::ignore_mode) {
+		if (FIXMATH_UNLIKELY(b.raw() == 0)) {
+			FIXMATH_ERROR("division by 0");
+			return fixed::nan();
+		}
+	}
 	int64_t qhi = 0;
 	int64_t qlo = 0;
 	int64_t rem = 0;

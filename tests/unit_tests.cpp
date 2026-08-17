@@ -17,6 +17,7 @@ const double pi = std::acos(-1);
 namespace {
 
 using Fix32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
+using Fix32Ignore = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::Ignore, fixmath::rounding_mode::RoundToEven>>;
 using Fix8Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 using Fix8Zero32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToZero>>;
 using Fix3Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 3, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
@@ -325,6 +326,10 @@ TEST(FIXMATH, DIV_SIMPLIFIED_RANGE) {
 	for (i64 raw : {-(i64(1) << 20), i64(-32769), i64(-32768), i64(32767), i64(32768), i64(1) << 20}) {
 		EXPECT_EQ((Fix48Even64::from_raw(raw) / one).raw(), raw);
 	}
+}
+
+TEST(FIXMATH, DIV_IGNORE_ZERO) {
+	EXPECT_FIX_DOMAIN_ERROR(Fix32Ignore(1) / Fix32Ignore(0));
 }
 
 TEST(FIXMATH, UNARY) {
