@@ -31,9 +31,10 @@ public:
 	constexpr const static raw_t ALL_BITS          = sizeof(raw_t) * CHAR_BIT;
 	constexpr const static raw_t FRACTION_BITS     = policy::fraction_bits;
 	constexpr const static raw_t INTEGER_BITS      = ALL_BITS - FRACTION_BITS;
-	constexpr const static raw_t FRACTION_MASK     = ::std::bit_cast<raw_t>(uraw_t(-1) >> INTEGER_BITS);
-	constexpr const static raw_t INTEGER_MASK      = ::std::bit_cast<raw_t>(uraw_t(-1) << FRACTION_BITS);
-	constexpr const static raw_t FRACTION_MSB_MASK = raw_t(1) << (FRACTION_BITS - 1);
+	constexpr const static uraw_t URATIO            = uraw_t(1) << FRACTION_BITS;
+	constexpr const static raw_t FRACTION_MASK     = static_cast<raw_t>(URATIO - 1);
+	constexpr const static raw_t INTEGER_MASK      = static_cast<raw_t>(~(URATIO - 1));
+	constexpr const static raw_t FRACTION_MSB_MASK = static_cast<raw_t>(URATIO >> 1);
 
 	using common_int32_t = ::std::common_type_t<raw_t, int32_t>;
 	using ordering_t = ::std::conditional_t<policy::strict_mode, ::std::partial_ordering, ::std::strong_ordering>;
@@ -90,7 +91,7 @@ private:
 	inline constexpr fixed(from_raw_t, raw_t v)
 		: value(v) {}
 	inline constexpr fixed(from_raw_t, uraw_t v)
-		: value(::std::bit_cast<raw_t>(v)) {}
+		: value(static_cast<raw_t>(v)) {}
 };
 
 } // namespace fixmath

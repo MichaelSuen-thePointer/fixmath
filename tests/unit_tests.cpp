@@ -64,12 +64,13 @@ void check_max_fraction_bits() {
 	using raw_t = typename Fix::raw_t;
 	using uraw_t = typename Fix::uraw_t;
 	using raw_limits = std::numeric_limits<raw_t>;
-	constexpr uraw_t scale = uraw_t(1) << Fix::FRACTION_BITS;
+	constexpr uraw_t scale = Fix::URATIO;
 	constexpr raw_t half_raw = static_cast<raw_t>(scale >> 1);
 	constexpr raw_t quarter_raw = static_cast<raw_t>(scale >> 2);
 
 	static_assert(Fix::FRACTION_BITS == Fix::ALL_BITS - 1);
 	static_assert(!HasRatio<Fix>);
+	static_assert(std::same_as<std::remove_cv_t<decltype(Fix::URATIO)>, uraw_t>);
 	EXPECT_EQ(Fix::from_raw(uraw_t(raw_limits::min())).raw(), raw_limits::min());
 	EXPECT_EQ(Fix::from_raw(uraw_t(-1)).raw(), raw_t(-1));
 	EXPECT_EQ(Fix::from_raw(uraw_t(0)).raw(), raw_t(0));
@@ -311,8 +312,8 @@ TEST(FIXMATH, MAX_FRACTION_BITS) {
 }
 
 TEST(FIXMATH, HIGH_FRACTION_64BIT_PATHS) {
-	const auto zero_half = Fix62Zero64Sat::from_raw(int64_t(1) << 61);
-	const auto even_half = Fix62Even64Sat::from_raw(int64_t(1) << 61);
+	const auto zero_half = Fix62Zero64Sat::from_raw(Fix62Zero64Sat::URATIO >> 1);
+	const auto even_half = Fix62Even64Sat::from_raw(Fix62Even64Sat::URATIO >> 1);
 	const auto raw_min = std::numeric_limits<int64_t>::min();
 	EXPECT_EQ((Fix62Zero64Sat::from_raw(int64_t(3)) * zero_half).raw(), 1);
 	EXPECT_EQ((Fix62Even64Sat::from_raw(int64_t(3)) * even_half).raw(), 2);
@@ -320,10 +321,10 @@ TEST(FIXMATH, HIGH_FRACTION_64BIT_PATHS) {
 	EXPECT_EQ(even_half / Fix62Even64Sat(1), even_half);
 	EXPECT_EQ((Fix62Zero64Sat::from_raw(int64_t(3)) / Fix62Zero64Sat::from_raw(raw_min)).raw(), -1);
 	EXPECT_EQ((Fix62Even64Sat::from_raw(int64_t(3)) / Fix62Even64Sat::from_raw(raw_min)).raw(), -2);
-	EXPECT_EQ(Fix63Zero64Sat::from_raw(int64_t(1)) / Fix63Zero64Sat::from_raw(int64_t(2)), Fix63Zero64Sat::from_raw(int64_t(1) << 62));
-	EXPECT_EQ(Fix63Even64Sat::from_raw(int64_t(1)) / Fix63Even64Sat::from_raw(int64_t(2)), Fix63Even64Sat::from_raw(int64_t(1) << 62));
+	EXPECT_EQ(Fix63Zero64Sat::from_raw(int64_t(1)) / Fix63Zero64Sat::from_raw(int64_t(2)), Fix63Zero64Sat::from_raw(Fix63Zero64Sat::URATIO >> 1));
+	EXPECT_EQ(Fix63Even64Sat::from_raw(int64_t(1)) / Fix63Even64Sat::from_raw(int64_t(2)), Fix63Even64Sat::from_raw(Fix63Even64Sat::URATIO >> 1));
 
-	const int64_t third_truncated = static_cast<int64_t>((uint64_t(1) << 63) / 3);
+	const int64_t third_truncated = static_cast<int64_t>(Fix63Zero64Sat::URATIO / 3);
 	EXPECT_EQ((Fix63Zero64Sat::from_raw(int64_t(1)) / Fix63Zero64Sat::from_raw(int64_t(3))).raw(), third_truncated);
 	EXPECT_EQ((Fix63Even64Sat::from_raw(int64_t(1)) / Fix63Even64Sat::from_raw(int64_t(3))).raw(), third_truncated + 1);
 	EXPECT_EQ((Fix63Zero64Sat::from_raw(int64_t(-1)) / Fix63Zero64Sat::from_raw(int64_t(3))).raw(), -third_truncated);
