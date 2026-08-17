@@ -17,7 +17,7 @@ constexpr fixed<policy> sqrt(fixed<policy> a) {
 			return fixed::nan();
 		}
 		if (FIXMATH_UNLIKELY(a.is_inf() && a > 0)) {
-			return fixed::max_inf();
+			return fixed::inf();
 		}
 		if (FIXMATH_UNLIKELY(a < 0)) {
 			FIXMATH_ERROR("sqrt(<0)");
