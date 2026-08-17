@@ -419,7 +419,7 @@ constexpr typename fixed<policy>::ordering_t operator<=>(fixed<policy> a, fixed<
 
 template <class T, class U>
 	requires FixedImplicitBinaryOperable<T, U>
-constexpr typename ::std::common_type_t<T, U>::ordering_t operator<=>(T a, T b) {
+constexpr typename ::std::common_type_t<T, U>::ordering_t operator<=>(T a, U b) {
 	using fixed = ::std::common_type_t<T, U>;
 	return fixed(a) <=> fixed(b);
 }

@@ -372,6 +372,13 @@ TEST(FIXMATH, UNARY) {
 }
 
 TEST(FIXMATH, COMPARE) {
+	static_assert((Fix32(1) <=> 1) == std::strong_ordering::equal);
+	static_assert((1 <=> Fix32(2)) == std::strong_ordering::less);
+	static_assert(Fix32(1) < 2);
+	static_assert(2 > Fix32(1));
+	static_assert((Fix32Strict::nan() <=> 0) == std::partial_ordering::unordered);
+	static_assert((0 <=> Fix32Strict::nan()) == std::partial_ordering::unordered);
+
 	EXPECT_EQ(Fix32(55554288) > Fix32(55554288), false);
 	EXPECT_EQ(Fix32(1.1) > Fix32(1.01), true);
 	EXPECT_EQ(Fix32(ABSERROR) > Fix32(0), true);
