@@ -18,7 +18,16 @@ The first command configures the test project and fetches GoogleTest, so network
 
 ## Coding Style & Naming Conventions
 
-Match the surrounding C++ style: tabs for indentation, braces on the same line as declarations, and `snake_case` for functions, variables, and implementation headers. Types use descriptive names such as `fixed_policy`; compile-time constants use `UPPER_SNAKE_CASE`. Internal helpers currently use the `_fm_` prefix. Keep public declarations in `.hpp` files and template implementations in `.inl` files. Preserve the MPL 2.0 notice at the top of source files. No automatic formatter or linter is configured, so minimize unrelated formatting changes.
+Match the surrounding C++ style: four spaces for indentation, a maximum line length of 120 characters, braces on the
+same line as declarations, and `snake_case` for functions, variables, and implementation headers. Types use descriptive
+names such as `fixed_policy`; compile-time constants use `UPPER_SNAKE_CASE`. Internal helpers currently use the `_fm_`
+prefix. Keep public declarations in `.hpp` files and template implementations in `.inl` files. Preserve the MPL 2.0
+notice at the top of source files. No automatic formatter or linter is configured, so minimize unrelated formatting
+changes.
+
+Avoid unnecessary templates in internal helpers, but retain template parameters when the result type or compile-time
+policy directly controls the implementation. Float/double bit-manipulation helpers should use separate overloads with
+the relevant IEEE-754 constants written directly rather than generalized format traits.
 
 ## Testing Guidelines
 
@@ -31,3 +40,6 @@ AI tools may assist with documentation, tests, and code. Treat generated output 
 ## Commit & Pull Request Guidelines
 
 Recent commits use short, imperative summaries such as `add sqrt` or `fix a bug ...`. Keep the subject focused on one behavioral change and explain non-obvious arithmetic or portability decisions in the body. Pull requests should describe the affected policy or operation, list test commands and platforms used, and link relevant issues. Include expected-versus-actual numeric examples for bug fixes; screenshots are generally unnecessary for this library.
+
+Commits initiated by an Agent or AI must append `by <specific agent name>` to the commit subject, for example
+`fix floating point rounding by Codex`. Use the actual agent name rather than a generic `AI` label.
