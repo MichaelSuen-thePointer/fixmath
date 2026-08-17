@@ -225,7 +225,7 @@ constexpr fixed<policy> operator*(fixed<policy> a, fixed<policy> b) {
 			if constexpr (!policy::ignore_mode) {
 				// check overfow
 				if (FIXMATH_UNLIKELY(rhi != (r >> 63))) {
-					return rhi > 0 ? fixed::max_sat() : fixed::min_sat();
+					return rhi >= 0 ? fixed::max_sat() : fixed::min_sat();
 				}
 				if constexpr (policy::strict_mode) {
 					if (FIXMATH_UNLIKELY(r == fixed::nan().raw())) {

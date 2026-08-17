@@ -307,6 +307,8 @@ TEST(FIXMATH, MUL) {
 	CHECK_FIX_MUL(-1.1111, -0.1);
 	EXPECT_EQ(Fix32(32767) * Fix32(32767), 1073676289);
 	EXPECT_EQ(Fix32(65536) * Fix32(65536), Fix32::max_sat());
+	EXPECT_EQ(Fix32::from_raw(i64(1) << 47) * Fix32::from_raw(i64(1) << 48), Fix32::max_sat());
+	EXPECT_EQ(Fix32::from_raw(-(i64(1) << 47)) * Fix32::from_raw((i64(1) << 48) + 1), Fix32::min_sat());
 	EXPECT_EQ(Fix32::max_fix() * Fix32::max_fix(), Fix32::max_sat());
 	EXPECT_EQ(Fix32::max_fix() * Fix32::min_fix(), Fix32::min_sat());
 	EXPECT_EQ(Fix32::min_fix() * Fix32::min_fix(), Fix32::max_sat());
