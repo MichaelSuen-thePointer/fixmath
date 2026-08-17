@@ -421,7 +421,13 @@ constexpr fixed<policy> operator+(fixed<policy> a) {
 template <FixedPolicy policy>
 constexpr fixed<policy> operator-(fixed<policy> a) {
 	using fixed = fixed<policy>;
+	using raw_t = typename fixed::raw_t;
 	using uraw_t = typename fixed::uraw_t;
+	if constexpr (policy::saturation_mode) {
+		if (FIXMATH_UNLIKELY(a.raw() == ::std::numeric_limits<raw_t>::min())) {
+			return fixed::max_sat();
+		}
+	}
 	uraw_t result = a.raw();
 	result = uraw_t{0} - result;
 	return fixed::from_raw(result);

@@ -338,7 +338,9 @@ TEST(FIXMATH, CONSTANT) {
 	EXPECT_FALSE(Fix32::min_sat().is_inf());
 	EXPECT_EQ(Fix32::min_sat(), Fix32::nan());
 	EXPECT_EQ(Fix32::nan(), Fix32::nan());
-	EXPECT_EQ(-Fix32::min_sat(), Fix32::min_sat());
+	EXPECT_EQ(-Fix32::min_sat(), Fix32::max_sat());
+	EXPECT_EQ(-Fix8Even32::min_sat(), Fix8Even32::max_sat());
+	EXPECT_EQ(-Fix32Ignore::min_sat(), Fix32Ignore::min_sat());
 	EXPECT_EQ(Fix32::min_sat(), -Fix32::max_sat() - Fix32::epsilon());
 	EXPECT_EQ(Fix32::min_sat(), Fix32::min_fix());
 	EXPECT_EQ(Fix32::max_sat(), Fix32::max_fix());
