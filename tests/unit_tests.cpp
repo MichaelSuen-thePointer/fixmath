@@ -29,6 +29,9 @@ using Fix48Even64 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 48, f
 template <class Raw, Raw FractionBits, arithmetic_mode ArithmeticMode, rounding_mode RoundingMode>
 using TestFix = fixed<fixed_policy<Raw, FractionBits, ArithmeticMode, RoundingMode>>;
 
+using Fix3Even8Ignore = TestFix<std::int8_t, 3, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
+using Fix7Even16Ignore = TestFix<std::int16_t, 7, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
+using Fix7Even16Sat = TestFix<std::int16_t, 7, arithmetic_mode::SaturationMode, rounding_mode::RoundToEven>;
 using Fix31Zero32Ignore = TestFix<int32_t, 31, arithmetic_mode::Ignore, rounding_mode::RoundToZero>;
 using Fix31Even32Ignore = TestFix<int32_t, 31, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
 using Fix31Zero32Sat = TestFix<int32_t, 31, arithmetic_mode::SaturationMode, rounding_mode::RoundToZero>;
@@ -550,6 +553,14 @@ TEST(FIXMATH, SQRT_ODD_FRACTION_BITS) {
 
 	EXPECT_EQ(sqrt(Fix3Even32::from_raw(1)).raw(), 3);
 	EXPECT_EQ(sqrt(Fix3Zero32::from_raw(1)).raw(), 2);
+}
+
+TEST(FIXMATH, SQRT_NARROW_UNDERLYING_TYPES) {
+	EXPECT_EQ(sqrt(Fix3Even8Ignore::from_raw(Fix3Even8Ignore::raw_t{2})).raw(), 4);
+	EXPECT_EQ(sqrt(Fix3Even8Ignore::from_raw(Fix3Even8Ignore::raw_t{8})).raw(), 8);
+	EXPECT_EQ(sqrt(Fix7Even16Sat::from_raw(Fix7Even16Sat::raw_t{512})).raw(), 256);
+	EXPECT_EQ(sqrt(Fix3Even8Ignore::from_raw(Fix3Even8Ignore::raw_t{-1})).raw(), 32);
+	EXPECT_EQ(sqrt(Fix7Even16Ignore::from_raw(Fix7Even16Ignore::raw_t{-1})).raw(), 2048);
 }
 
 template <class T, class U>

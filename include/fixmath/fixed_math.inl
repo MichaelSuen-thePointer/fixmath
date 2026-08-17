@@ -16,22 +16,22 @@ constexpr fixed<policy> sqrt(fixed<policy> a) {
 		if (FIXMATH_UNLIKELY(a.is_nan())) {
 			return fixed::nan();
 		}
-		if (FIXMATH_UNLIKELY(a.is_inf() && a > 0)) {
+		if (FIXMATH_UNLIKELY(a.is_inf() && a.raw() > 0)) {
 			return fixed::inf();
 		}
-		if (FIXMATH_UNLIKELY(a < 0)) {
+		if (FIXMATH_UNLIKELY(a.raw() < 0)) {
 			FIXMATH_ERROR("sqrt(<0)");
 			return fixed::nan();
 		}
 	}
 	if constexpr (policy::saturation_mode) {
-		if (FIXMATH_UNLIKELY(a < fixed(0))) {
+		if (FIXMATH_UNLIKELY(a.raw() < 0)) {
 			FIXMATH_ERROR("sqrt(<0)");
 			return fixed::min_sat();
 		}
 	}
-	if (a == 0) {
-		return 0;
+	if (a.raw() == 0) {
+		return fixed::from_raw(raw_t{0});
 	}
 	uraw_t value = a.uraw();
 	if constexpr (fixed::FRACTION_BITS & 1) {
@@ -39,7 +39,12 @@ constexpr fixed<policy> sqrt(fixed<policy> a) {
 	}
 	uraw_t root = 0;
 	uraw_t remainder = 0;
-	raw_t start_i = _fm_clz(value) >> 1;
+	int start_i = 0;
+	if constexpr (sizeof(uraw_t) <= sizeof(uint32_t)) {
+		start_i = (_fm_clz(static_cast<uint32_t>(value)) - (sizeof(uint32_t) * CHAR_BIT - fixed::ALL_BITS)) >> 1;
+	} else {
+		start_i = (_fm_clz(static_cast<uint64_t>(value)) - (sizeof(uint64_t) * CHAR_BIT - fixed::ALL_BITS)) >> 1;
+	}
 	value <<= (start_i << 1);
 	for (raw_t i = start_i; i < fixed::ALL_BITS / 2; ++i) {
 		root <<= 1;

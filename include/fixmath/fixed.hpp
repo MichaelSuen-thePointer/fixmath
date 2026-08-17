@@ -54,9 +54,9 @@ public:
 	constexpr static fixed nan() { return fixed::from_raw(::std::numeric_limits<raw_t>::min()); }
 	constexpr static fixed inf() { return fixed::from_raw(::std::numeric_limits<raw_t>::max()); }
 	constexpr static fixed max_sat() { return fixed::from_raw(::std::numeric_limits<raw_t>::max()); }
-	constexpr static fixed min_sat() { return fixed::from_raw(::std::numeric_limits<raw_t>::min() + (policy::strict_mode ? 1 : 0)); }
-	constexpr static fixed max_fix() { return fixed::from_raw(::std::numeric_limits<raw_t>::max() - (policy::strict_mode ? 1 : 0)); }
-	constexpr static fixed min_fix() { return fixed::from_raw(::std::numeric_limits<raw_t>::min() + (policy::strict_mode ? 2 : 0)); }
+	constexpr static fixed min_sat() { return fixed::from_raw(static_cast<raw_t>(::std::numeric_limits<raw_t>::min() + (policy::strict_mode ? 1 : 0))); }
+	constexpr static fixed max_fix() { return fixed::from_raw(static_cast<raw_t>(::std::numeric_limits<raw_t>::max() - (policy::strict_mode ? 1 : 0))); }
+	constexpr static fixed min_fix() { return fixed::from_raw(static_cast<raw_t>(::std::numeric_limits<raw_t>::min() + (policy::strict_mode ? 2 : 0))); }
 	constexpr static fixed max_int() { return fixed(MAX_REPRESENTABLE_INTEGER); }
 	constexpr static fixed min_int() { return fixed(MIN_REPRESENTABLE_INTEGER); }
 

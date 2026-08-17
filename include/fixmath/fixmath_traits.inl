@@ -35,6 +35,7 @@ struct fixed_policy {
 	const static bool rounding = rounding_mode == rounding_mode::RoundToEven;
 
 	static_assert(::std::is_signed_v<raw_t>, "underlying_type should be signed");
+	static_assert(sizeof(raw_t) <= sizeof(int64_t), "underlying_type should not exceed 64 bits");
 	static_assert(0 < fraction_bits && fraction_bits < sizeof(raw_t) * CHAR_BIT, "fraction bits should between [1, BITS - 1]");
 };
 
