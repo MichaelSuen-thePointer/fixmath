@@ -31,26 +31,26 @@ public:
 	constexpr const static raw_t ALL_BITS          = sizeof(raw_t) * CHAR_BIT;
 	constexpr const static raw_t FRACTION_BITS     = policy::fraction_bits;
 	constexpr const static raw_t INTEGER_BITS      = ALL_BITS - FRACTION_BITS;
-	constexpr const static uraw_t URATIO            = uraw_t(1) << FRACTION_BITS;
-	constexpr const static raw_t FRACTION_MASK     = static_cast<raw_t>(URATIO - 1);
-	constexpr const static raw_t INTEGER_MASK      = static_cast<raw_t>(~(URATIO - 1));
-	constexpr const static raw_t FRACTION_MSB_MASK = static_cast<raw_t>(URATIO >> 1);
+	constexpr const static uraw_t URATIO            = uraw_t{1} << FRACTION_BITS;
+	constexpr const static raw_t FRACTION_MASK     = URATIO - 1;
+	constexpr const static raw_t INTEGER_MASK      = ~(URATIO - 1);
+	constexpr const static raw_t FRACTION_MSB_MASK = URATIO >> 1;
 
 	using common_int32_t = ::std::common_type_t<raw_t, int32_t>;
 	using ordering_t = ::std::conditional_t<policy::strict_mode, ::std::partial_ordering, ::std::strong_ordering>;
 
-	constexpr const static raw_t   MAX_REPRESENTABLE_INTEGER = ::std::max<raw_t>(0, (raw_t(1) << (INTEGER_BITS - 1)) - 1);
-	constexpr const static int32_t MAX_REPRESENTABLE_INT32   = int32_t(::std::min<common_int32_t>(MAX_REPRESENTABLE_INTEGER, ::std::numeric_limits<int32_t>::max()));
+	constexpr const static raw_t   MAX_REPRESENTABLE_INTEGER = ::std::max<raw_t>(0, (raw_t{1} << (INTEGER_BITS - 1)) - 1);
+	constexpr const static int32_t MAX_REPRESENTABLE_INT32   = static_cast<int32_t>(::std::min<common_int32_t>(MAX_REPRESENTABLE_INTEGER, ::std::numeric_limits<int32_t>::max()));
 	constexpr const static double  MAX_REPRESENTABLE_DOUBLE  = _fm_assemble_double(ALL_BITS - 2, INTEGER_BITS - 2);
 	constexpr const static float   MAX_REPRESENTABLE_FLOAT   = _fm_assemble_float(ALL_BITS - 2, INTEGER_BITS - 2);
 
 	constexpr const static raw_t   MIN_REPRESENTABLE_INTEGER = policy::strict_mode ? -MAX_REPRESENTABLE_INTEGER : -MAX_REPRESENTABLE_INTEGER - 1;
-	constexpr const static int32_t MIN_REPRESENTABLE_INT32   = int32_t(::std::max<common_int32_t>(MIN_REPRESENTABLE_INTEGER, ::std::numeric_limits<int32_t>::min()));
+	constexpr const static int32_t MIN_REPRESENTABLE_INT32   = static_cast<int32_t>(::std::max<common_int32_t>(MIN_REPRESENTABLE_INTEGER, ::std::numeric_limits<int32_t>::min()));
 	constexpr const static double  MIN_REPRESENTABLE_DOUBLE  = policy::strict_mode ? -MAX_REPRESENTABLE_DOUBLE : -_fm_assemble_double(0, INTEGER_BITS - 1);
 	constexpr const static float   MIN_REPRESENTABLE_FLOAT   = policy::strict_mode ? -MAX_REPRESENTABLE_FLOAT : -_fm_assemble_float(0, INTEGER_BITS - 1);
 	// clang-format on
 
-	constexpr static fixed epsilon() { return fixed::from_raw(raw_t(1)); }
+	constexpr static fixed epsilon() { return fixed::from_raw(raw_t{1}); }
 	constexpr static fixed nan() { return fixed::from_raw(::std::numeric_limits<raw_t>::min()); }
 	constexpr static fixed inf() { return fixed::from_raw(::std::numeric_limits<raw_t>::max()); }
 	constexpr static fixed max_sat() { return fixed::from_raw(::std::numeric_limits<raw_t>::max()); }
@@ -91,7 +91,7 @@ private:
 	inline constexpr fixed(from_raw_t, raw_t v)
 		: value(v) {}
 	inline constexpr fixed(from_raw_t, uraw_t v)
-		: value(static_cast<raw_t>(v)) {}
+		: value(v) {}
 };
 
 } // namespace fixmath

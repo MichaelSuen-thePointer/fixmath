@@ -48,7 +48,7 @@ constexpr fixed<policy>::fixed(int32_t value)
             ? max_sat().raw()
         : value < MIN_REPRESENTABLE_INT32
             ? min_sat().raw()
-        : static_cast<raw_t>(uraw_t(value) * URATIO)
+        : value * URATIO
     )
 {}
 // clang-format on
@@ -68,7 +68,9 @@ constexpr fixed<policy>::operator float() const {
 			return value > 0 ? ::std::numeric_limits<float>::infinity() : -::std::numeric_limits<float>::infinity();
 		}
 	}
-	return static_cast<float>(value) / static_cast<float>(URATIO);
+	const float raw_value = static_cast<float>(value);
+	const float ratio = static_cast<float>(URATIO);
+	return raw_value / ratio;
 }
 
 template <FixedPolicy policy>
@@ -81,14 +83,17 @@ constexpr fixed<policy>::operator double() const {
 			return value > 0 ? ::std::numeric_limits<double>::infinity() : -::std::numeric_limits<double>::infinity();
 		}
 	}
-	return static_cast<double>(value) / static_cast<double>(URATIO);
+	const double raw_value = static_cast<double>(value);
+	const double ratio = static_cast<double>(URATIO);
+	return raw_value / ratio;
 }
 
 template <FixedPolicy policy>
 constexpr fixed<policy>::operator int32_t() const {
 	raw_t result = 0;
 	if constexpr (FRACTION_BITS < ALL_BITS - 1) {
-		result = value / static_cast<raw_t>(URATIO);
+		const raw_t ratio = URATIO;
+		result = value / ratio;
 	} else if (value == ::std::numeric_limits<raw_t>::min()) {
 		result = -1;
 	}
@@ -146,7 +151,9 @@ constexpr fixed<policy> operator+(fixed<policy> a, fixed<policy> b) {
 	}
 	raw_t r = 0;
 	if constexpr (policy::ignore_mode) {
-		r = raw_t(uraw_t(a.raw()) + uraw_t(b.raw()));
+		uraw_t ur = a.raw();
+		ur += b.raw();
+		r = ur;
 	} else {
 		bool overflow = false;
 		r = _fm_checked_add(a.raw(), b.raw(), overflow);
@@ -184,7 +191,9 @@ constexpr fixed<policy> operator-(fixed<policy> a, fixed<policy> b) {
 	}
 	raw_t r = 0;
 	if constexpr (policy::ignore_mode) {
-		r = raw_t(uraw_t(a.raw()) - uraw_t(b.raw()));
+		uraw_t ur = a.raw();
+		ur -= b.raw();
+		r = ur;
 	} else {
 		bool overflow = false;
 		r = _fm_checked_sub(a.raw(), b.raw(), overflow);
@@ -253,7 +262,8 @@ constexpr fixed<policy> operator*(fixed<policy> a, fixed<policy> b) {
 				return fixed::min_sat();
 			}
 		}
-		return fixed::from_raw(raw_t(r64));
+		const raw_t r = static_cast<raw_t>(r64);
+		return fixed::from_raw(r);
 	}
 }
 
@@ -305,11 +315,13 @@ constexpr fixed<policy> operator/(fixed<policy> a, fixed<policy> b) {
 	if constexpr (sizeof(raw_t) == 8) {
 		// use extended int128 division
 		if constexpr (fixed::FRACTION_BITS < 62) {
-			const raw_t _simp_min = -static_cast<raw_t>(uraw_t(::std::numeric_limits<raw_t>::min()) / fixed::URATIO);
-			const raw_t _simp_max = static_cast<raw_t>(uraw_t(::std::numeric_limits<raw_t>::max()) / fixed::URATIO);
+			const raw_t _ratio = fixed::URATIO;
+			const raw_t _simp_min = ::std::numeric_limits<raw_t>::min() / _ratio;
+			const raw_t _simp_max = ::std::numeric_limits<raw_t>::max() / _ratio;
 			if (FIXMATH_LIKELY(_simp_min < a.raw() && a.raw() <= _simp_max)) {
 				// check for simplified division
-				qlo = a.raw() * static_cast<int64_t>(fixed::URATIO);
+				qlo = a.raw();
+				qlo *= fixed::URATIO;
 				if constexpr (policy::rounding) {
 					rem = qlo % b.raw();
 				}
@@ -321,19 +333,24 @@ constexpr fixed<policy> operator/(fixed<policy> a, fixed<policy> b) {
 					// speed up for common cases
 					_r = _fm_shl32div(a.raw(), b.raw(), rem);
 				} else {
-					_r = _fm_div128(a.raw() >> (fixed::ALL_BITS - fixed::FRACTION_BITS), static_cast<int64_t>(uint64_t(a.raw()) * uint64_t(fixed::URATIO)), b.raw(), rem);
+					qlo = a.raw();
+					qlo *= fixed::URATIO;
+					_r = _fm_div128(a.raw() >> (fixed::ALL_BITS - fixed::FRACTION_BITS), qlo, b.raw(), rem);
 				}
 				qlo = _r.lo;
 				qhi = _r.hi;
 			}
 		} else {
 			_int128_s _r = {};
-			_r = _fm_div128(a.raw() >> (fixed::ALL_BITS - fixed::FRACTION_BITS), static_cast<int64_t>(uint64_t(a.raw()) * uint64_t(fixed::URATIO)), b.raw(), rem);
+			qlo = a.raw();
+			qlo *= fixed::URATIO;
+			_r = _fm_div128(a.raw() >> (fixed::ALL_BITS - fixed::FRACTION_BITS), qlo, b.raw(), rem);
 			qlo = _r.lo;
 			qhi = _r.hi;
 		}
 	} else {
-		qlo = int64_t(a.raw()) * int64_t(fixed::URATIO);
+		qlo = a.raw();
+		qlo *= fixed::URATIO;
 		if constexpr (policy::rounding) {
 			rem = qlo % b.raw();
 		}
@@ -341,8 +358,14 @@ constexpr fixed<policy> operator/(fixed<policy> a, fixed<policy> b) {
 		qhi = qlo >> 63;
 	}
 	if constexpr (policy::rounding) {
-		uint64_t abs_rem = rem < 0 ? -static_cast<uint64_t>(rem) : static_cast<uint64_t>(rem);
-		uint64_t abs_b = b.raw() < 0 ? -static_cast<uint64_t>(b.raw()) : static_cast<uint64_t>(b.raw());
+		uint64_t abs_rem = rem;
+		uint64_t abs_b = b.raw();
+		if (rem < 0) {
+			abs_rem = uint64_t{0} - abs_rem;
+		}
+		if (b.raw() < 0) {
+			abs_b = uint64_t{0} - abs_b;
+		}
 		bool quo_nonneg = (a.raw() < 0) == (b.raw() < 0);
 		int64_t sign = quo_nonneg ? 1 : -1;
 		int64_t carry = (abs_rem * 2 > abs_b ? 1 : abs_rem * 2 == abs_b ? qlo & 1 : 0) * sign;
@@ -358,7 +381,8 @@ constexpr fixed<policy> operator/(fixed<policy> a, fixed<policy> b) {
 			return fixed::min_sat();
 		}
 	}
-	return fixed::from_raw(raw_t(qlo));
+	const raw_t result = static_cast<raw_t>(qlo);
+	return fixed::from_raw(result);
 }
 
 template <class T, class U>
@@ -397,9 +421,10 @@ constexpr fixed<policy> operator+(fixed<policy> a) {
 template <FixedPolicy policy>
 constexpr fixed<policy> operator-(fixed<policy> a) {
 	using fixed = fixed<policy>;
-	using raw_t = typename fixed::raw_t;
 	using uraw_t = typename fixed::uraw_t;
-	return fixed::from_raw(raw_t(0 - uraw_t(a.raw())));
+	uraw_t result = a.raw();
+	result = uraw_t{0} - result;
+	return fixed::from_raw(result);
 }
 
 template <FixedPolicy policy>

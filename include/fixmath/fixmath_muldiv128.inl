@@ -137,15 +137,16 @@ template <class policy, size_t N>
 inline uint64_t _fm_div2n_round(uint64_t rhi, uint64_t rlo, uint64_t& ohi) {
 	static_assert(N > 0 && N < 64, "bug");
 	if constexpr (policy::rounding) {
-		const uint64_t mask = (uint64_t(1) << N) - 1;
-		const uint64_t half = uint64_t(1) << (N - 1);
+		const uint64_t mask = (uint64_t{1} << N) - 1;
+		const uint64_t half = uint64_t{1} << (N - 1);
 		// Divide by 2^32 and round to nearest, ties to even.
 		uint64_t frac = rlo & mask;
 		rlo = (rlo >> N) | (rhi << (64 - N));
 		rhi >>= N;
 		bool carry1 = frac > half;
 		bool carry2 = (frac == half) && (rlo & 1);
-		rlo = _fm_checked_add(rlo, uint64_t(carry1 | carry2), carry1);
+		const uint64_t carry = carry1 | carry2;
+		rlo = _fm_checked_add(rlo, carry, carry1);
 		rhi += carry1;
 	} else {
 		rlo = (rlo >> N) | (rhi << (64 - N));
@@ -159,8 +160,8 @@ template <class policy, size_t N>
 inline int64_t _fm_div2n_round(int64_t rhi, int64_t rlo, int64_t& ohi) {
 	static_assert(N > 0 && N < 64, "bug");
 	if constexpr (policy::rounding) {
-		const int64_t fracion_mask = int64_t(uint64_t(-1) >> (64 - N));
-		const int64_t half = int64_t(1) << (N - 1);
+		const int64_t fracion_mask = (~uint64_t{0}) >> (64 - N);
+		const int64_t half = int64_t{1} << (N - 1);
 		// Divide by 2^32 and round to nearest, ties to even.
 		int64_t fraction = rlo & fracion_mask;
 		rlo = (static_cast<uint64_t>(rlo) >> N) | (rhi << (64 - N));
@@ -169,9 +170,12 @@ inline int64_t _fm_div2n_round(int64_t rhi, int64_t rlo, int64_t& ohi) {
 			_fm_inc128(rhi, rlo);
 		}
 	} else {
-		const uint64_t fracion_mask = uint64_t(rhi >> 63) >> (64 - N);
+		uint64_t fracion_mask = rhi >> 63;
+		fracion_mask >>= 64 - N;
 		uint64_t c = 0;
-		rlo = int64_t(_fm_checked_add(uint64_t(rlo), fracion_mask, c));
+		uint64_t urlo = rlo;
+		urlo = _fm_checked_add(urlo, fracion_mask, c);
+		rlo = urlo;
 		rhi = static_cast<uint64_t>(rhi) + c;
 		rlo = (static_cast<uint64_t>(rlo) >> N) | (rhi << (64 - N));
 		rhi >>= N;

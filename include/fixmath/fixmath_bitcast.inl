@@ -24,17 +24,17 @@ constexpr R _fm_binary_to_fixed_raw(bool negative, uint64_t significand, int exp
 		if (right_shift < 64) {
 			truncated = significand >> right_shift;
 			if constexpr (round_to_even) {
-				const uint64_t mask = (uint64_t(1) << right_shift) - 1;
+				const uint64_t mask = (uint64_t{1} << right_shift) - 1;
 				const uint64_t remainder = significand & mask;
-				const uint64_t half = uint64_t(1) << (right_shift - 1);
+				const uint64_t half = uint64_t{1} << (right_shift - 1);
 				carry = remainder > half || (remainder == half && (truncated & 1));
 			}
 		}
-		magnitude = truncated + uint64_t(carry);
+		magnitude = truncated + carry;
 	}
 
 	int64_t result = 0;
-	const uint64_t sign_bit = uint64_t(1) << (RAW_BITS - 1);
+	const uint64_t sign_bit = uint64_t{1} << (RAW_BITS - 1);
 	if (negative) {
 		result = RAW_BITS == 64 && magnitude == sign_bit ? ::std::numeric_limits<int64_t>::min() : -static_cast<int64_t>(magnitude);
 	} else {
@@ -74,16 +74,18 @@ constexpr R _fm_float_to_fixed_raw(double value) {
 constexpr double _fm_assemble_double(int mantissa_bits, int exponent) {
 	mantissa_bits = ::std::min(mantissa_bits, 52);
 	uint64_t raw = 0;
-	raw |= uint64_t((exponent + 1023) & 0x7FF) << 52;
-	raw |= (uint64_t(-1) >> 1 >> (63 - mantissa_bits)) << (52 - mantissa_bits);
+	const uint64_t raw_exponent = (exponent + 1023) & 0x7FF;
+	raw |= raw_exponent << 52;
+	raw |= ((~uint64_t{0}) >> 1 >> (63 - mantissa_bits)) << (52 - mantissa_bits);
 	return ::std::bit_cast<double>(raw);
 }
 
 constexpr float _fm_assemble_float(int mantissa_bits, int exponent) {
 	mantissa_bits = ::std::min(mantissa_bits, 23);
 	uint32_t raw = 0;
-	raw |= uint32_t((exponent + 127) & 0xFF) << 23;
-	raw |= (uint32_t(-1) >> 1 >> (31 - mantissa_bits)) << (23 - mantissa_bits);
+	const uint32_t raw_exponent = (exponent + 127) & 0xFF;
+	raw |= raw_exponent << 23;
+	raw |= ((~uint32_t{0}) >> 1 >> (31 - mantissa_bits)) << (23 - mantissa_bits);
 	return ::std::bit_cast<float>(raw);
 }
 
