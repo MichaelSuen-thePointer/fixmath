@@ -38,8 +38,14 @@ inline int _fm_clz(uint64_t value) {
 inline int _fm_clz(uint64_t x) {
 	int result = 0;
 	if (x == 0) return 64;
-	while (!(x & 0xF000000000000000ULL)) { result += 4; x <<= 4; }
-	while (!(x & 0x8000000000000000ULL)) { result += 1; x <<= 1; }
+	while (!(x & 0xF000000000000000ULL)) {
+		result += 4;
+		x <<= 4;
+	}
+	while (!(x & 0x8000000000000000ULL)) {
+		result += 1;
+		x <<= 1;
+	}
 	return result;
 }
 #endif
@@ -65,8 +71,14 @@ inline int _fm_clz(uint32_t value) {
 inline int _fm_clz(uint32_t x) {
 	int result = 0;
 	if (x == 0) return 32;
-	while (!(x & 0xF0000000)) { result += 4; x <<= 4; }
-	while (!(x & 0x80000000)) { result += 1; x <<= 1; }
+	while (!(x & 0xF0000000)) {
+		result += 4;
+		x <<= 4;
+	}
+	while (!(x & 0x80000000)) {
+		result += 1;
+		x <<= 1;
+	}
 	return result;
 }
 #endif

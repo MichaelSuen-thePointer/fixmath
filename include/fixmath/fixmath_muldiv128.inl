@@ -74,9 +74,7 @@ inline _int128_s _fm_div128(int64_t dhi, int64_t dlo, int64_t d, int64_t& rem) {
 		urem = udhi;
 	}
 #if FIXMATH_LINUX_X64
-	__asm__("divq %[v]"
-		: "=a"(uqlo), "=d"(urem)
-		: [v] "r"(ud), "a"(udlo), "d"(urem));
+	__asm__("divq %[v]" : "=a"(uqlo), "=d"(urem) : [v] "r"(ud), "a"(udlo), "d"(urem));
 #elif FIXMATH_WIN_X64 && FIXMATH_HAS_INTRIN_DIV
 	uqlo = ::_udiv128(urem, udlo, ud, &urem);
 #else
@@ -89,10 +87,10 @@ inline _int128_s _fm_div128(int64_t dhi, int64_t dlo, int64_t d, int64_t& rem) {
 		urem = 0 - urem;
 	}
 	rem = static_cast<int64_t>(urem);
-	return { static_cast<int64_t>(uqlo), static_cast<int64_t>(uqhi) };
+	return {static_cast<int64_t>(uqlo), static_cast<int64_t>(uqhi)};
 }
 
-template<class policy, size_t N, class T>
+template <class policy, size_t N, class T>
 inline T _fm_div2n_round(T a) {
 	// Divide by 2^N and round to nearest, ties to even (when enabled).
 	const int bits = sizeof(a) * 8;
@@ -113,7 +111,7 @@ inline T _fm_div2n_round(T a) {
 	return a;
 }
 
-template<class policy, class T>
+template <class policy, class T>
 inline T _fm_div2n_round(T a, uint64_t n) {
 	// Divide by 2^N and round to nearest, ties to even.
 	const int bits = sizeof(a) * 8;
@@ -135,7 +133,7 @@ inline T _fm_div2n_round(T a, uint64_t n) {
 	return a;
 }
 
-template<class policy, size_t N>
+template <class policy, size_t N>
 inline uint64_t _fm_div2n_round(uint64_t rhi, uint64_t rlo, uint64_t& ohi) {
 	static_assert(N > 0 && N < 64, "bug");
 	if constexpr (policy::rounding) {
@@ -157,7 +155,7 @@ inline uint64_t _fm_div2n_round(uint64_t rhi, uint64_t rlo, uint64_t& ohi) {
 	return rlo;
 }
 
-template<class policy, size_t N>
+template <class policy, size_t N>
 inline int64_t _fm_div2n_round(int64_t rhi, int64_t rlo, int64_t& ohi) {
 	static_assert(N > 0 && N < 64, "bug");
 	if constexpr (policy::rounding) {
@@ -203,9 +201,7 @@ inline _int128_s _fm_shl32div(int64_t a, int64_t b, int64_t& rem) {
 		urem = rs32;
 	}
 #if FIXMATH_LINUX_X64
-	__asm__("divq %[v]"
-		: "=a"(uqlo), "=d"(urem)
-		: [v] "r"(absb), "a"(absa << 32), "d"(urem));
+	__asm__("divq %[v]" : "=a"(uqlo), "=d"(urem) : [v] "r"(absb), "a"(absa << 32), "d"(urem));
 #elif FIXMATH_WIN_X64 && FIXMATH_HAS_INTRIN_DIV
 	uqlo = ::_udiv128(urem, absa << 32, absb, &urem);
 #else
@@ -218,7 +214,7 @@ inline _int128_s _fm_shl32div(int64_t a, int64_t b, int64_t& rem) {
 		urem = 0 - urem;
 	}
 	rem = static_cast<int64_t>(urem);
-	return { static_cast<int64_t>(uqlo), static_cast<int64_t>(uqhi) };
+	return {static_cast<int64_t>(uqlo), static_cast<int64_t>(uqhi)};
 }
 
 } // namespace fixmath

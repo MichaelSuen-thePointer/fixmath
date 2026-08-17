@@ -1,4 +1,4 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
+﻿/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
@@ -11,19 +11,15 @@
 #include "fixed.hpp"
 using namespace fixmath;
 
-std::mt19937_64 mtg{ std::random_device{}() };
+std::mt19937_64 mtg{std::random_device{}()};
 const double pi = std::acos(-1);
 
 namespace {
 
-using Fix32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32,
-    fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
-using Fix8Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8,
-    fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
-using Fix8Zero32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8,
-    fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToZero>>;
-using Fix16Even64 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 16,
-    fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
+using Fix32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
+using Fix8Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
+using Fix8Zero32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToZero>>;
+using Fix16Even64 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 16, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 
 using i32 = fixmath::int32_t;
 using i64 = fixmath::int64_t;
@@ -46,7 +42,6 @@ static_assert(Fix32::MAX_REPRESENTABLE_DOUBLE == 0x1.ffff'ffff'ffff'fp30);
 static_assert(Fix32::MIN_REPRESENTABLE_DOUBLE == -0x1.0p31);
 
 TEST(FIXMATH, INT128MUL) {
-
 	std::uniform_int_distribution<i64> rand{i64l::min(), i64l::max()};
 	for (int i = 0; i < 1048576; ++i) {
 		i64 a = rand(mtg);
@@ -160,47 +155,46 @@ TEST(FIXMATH, CAST) {
 	EXPECT_EQ(Fix32(-100), -100);
 	EXPECT_EQ(Fix32(2147483647), 2147483647);
 	EXPECT_EQ(Fix32(-2147483647), -2147483647);
-	EXPECT_EQ(Fix32(-2147483647-1), -2147483647-1);
+	EXPECT_EQ(Fix32(-2147483647 - 1), -2147483647 - 1);
 	EXPECT_FIX_NEAR(Fix32(26061.96161111111), 26061.9616111111);
-
 }
 
 TEST(FIXMATH, CAST_BINARY_ROUNDING) {
-    static_assert(std::same_as<decltype(_fm_float_to_fixed_raw<i32, 8, true>(0.0f)), i32>);
-    static_assert(std::same_as<decltype(_fm_float_to_fixed_raw<i64, 16, true>(0.0)), i64>);
-    static_assert(Fix8Even32(2.5 / 256).raw() == 2);
-    static_assert(Fix8Even32(3.5 / 256).raw() == 4);
-    static_assert(Fix8Even32(-2.5 / 256).raw() == -2);
-    static_assert(Fix8Even32(-3.5 / 256).raw() == -4);
+	static_assert(std::same_as<decltype(_fm_float_to_fixed_raw<i32, 8, true>(0.0f)), i32>);
+	static_assert(std::same_as<decltype(_fm_float_to_fixed_raw<i64, 16, true>(0.0)), i64>);
+	static_assert(Fix8Even32(2.5 / 256).raw() == 2);
+	static_assert(Fix8Even32(3.5 / 256).raw() == 4);
+	static_assert(Fix8Even32(-2.5 / 256).raw() == -2);
+	static_assert(Fix8Even32(-3.5 / 256).raw() == -4);
 
-    EXPECT_EQ(Fix8Even32(2.5f / 256).raw(), 2);
-    EXPECT_EQ(Fix8Even32(3.5f / 256).raw(), 4);
-    EXPECT_EQ(Fix8Even32(-2.5f / 256).raw(), -2);
-    EXPECT_EQ(Fix8Even32(-3.5f / 256).raw(), -4);
+	EXPECT_EQ(Fix8Even32(2.5f / 256).raw(), 2);
+	EXPECT_EQ(Fix8Even32(3.5f / 256).raw(), 4);
+	EXPECT_EQ(Fix8Even32(-2.5f / 256).raw(), -2);
+	EXPECT_EQ(Fix8Even32(-3.5f / 256).raw(), -4);
 
-    EXPECT_EQ(Fix8Even32(2.5 / 256).raw(), 2);
-    EXPECT_EQ(Fix8Even32(3.5 / 256).raw(), 4);
-    EXPECT_EQ(Fix8Even32(-2.5 / 256).raw(), -2);
-    EXPECT_EQ(Fix8Even32(-3.5 / 256).raw(), -4);
-    EXPECT_EQ(Fix8Even32(std::nextafter(2.5 / 256, 0.0)).raw(), 2);
-    EXPECT_EQ(Fix8Even32(std::nextafter(2.5 / 256, 1.0)).raw(), 3);
-    EXPECT_EQ(Fix8Even32(std::nextafter(-2.5 / 256, 0.0)).raw(), -2);
-    EXPECT_EQ(Fix8Even32(std::nextafter(-2.5 / 256, -1.0)).raw(), -3);
+	EXPECT_EQ(Fix8Even32(2.5 / 256).raw(), 2);
+	EXPECT_EQ(Fix8Even32(3.5 / 256).raw(), 4);
+	EXPECT_EQ(Fix8Even32(-2.5 / 256).raw(), -2);
+	EXPECT_EQ(Fix8Even32(-3.5 / 256).raw(), -4);
+	EXPECT_EQ(Fix8Even32(std::nextafter(2.5 / 256, 0.0)).raw(), 2);
+	EXPECT_EQ(Fix8Even32(std::nextafter(2.5 / 256, 1.0)).raw(), 3);
+	EXPECT_EQ(Fix8Even32(std::nextafter(-2.5 / 256, 0.0)).raw(), -2);
+	EXPECT_EQ(Fix8Even32(std::nextafter(-2.5 / 256, -1.0)).raw(), -3);
 
-    EXPECT_EQ(Fix16Even64(2.5 / 65536).raw(), 2);
-    EXPECT_EQ(Fix16Even64(3.5 / 65536).raw(), 4);
-    EXPECT_EQ(Fix16Even64(-2.5 / 65536).raw(), -2);
-    EXPECT_EQ(Fix16Even64(-3.5 / 65536).raw(), -4);
+	EXPECT_EQ(Fix16Even64(2.5 / 65536).raw(), 2);
+	EXPECT_EQ(Fix16Even64(3.5 / 65536).raw(), 4);
+	EXPECT_EQ(Fix16Even64(-2.5 / 65536).raw(), -2);
+	EXPECT_EQ(Fix16Even64(-3.5 / 65536).raw(), -4);
 
-    EXPECT_EQ(Fix8Zero32(3.75f / 256).raw(), 3);
-    EXPECT_EQ(Fix8Zero32(-3.75f / 256).raw(), -3);
-    EXPECT_EQ(Fix8Zero32(3.75 / 256).raw(), 3);
-    EXPECT_EQ(Fix8Zero32(-3.75 / 256).raw(), -3);
+	EXPECT_EQ(Fix8Zero32(3.75f / 256).raw(), 3);
+	EXPECT_EQ(Fix8Zero32(-3.75f / 256).raw(), -3);
+	EXPECT_EQ(Fix8Zero32(3.75 / 256).raw(), 3);
+	EXPECT_EQ(Fix8Zero32(-3.75 / 256).raw(), -3);
 
-    EXPECT_EQ(Fix8Even32(-8388608.0).raw(), i32l::min());
-    EXPECT_EQ(Fix8Even32(8388607.99609375).raw(), i32l::max());
-    EXPECT_EQ(Fix8Even32(f32l::denorm_min()).raw(), 0);
-    EXPECT_EQ(Fix8Even32(-f32l::denorm_min()).raw(), 0);
+	EXPECT_EQ(Fix8Even32(-8388608.0).raw(), i32l::min());
+	EXPECT_EQ(Fix8Even32(8388607.99609375).raw(), i32l::max());
+	EXPECT_EQ(Fix8Even32(f32l::denorm_min()).raw(), 0);
+	EXPECT_EQ(Fix8Even32(-f32l::denorm_min()).raw(), 0);
 }
 
 TEST(FIXMATH, CONSTANT) {
@@ -220,7 +214,7 @@ TEST(FIXMATH, ROUNDING) {
 	auto p = Fix32::epsilon();
 	auto p1 = p;
 	EXPECT_EQ(p1 / Fix32(2), Fix32(0));
-	auto p11= p * Fix32(2) + p;
+	auto p11 = p * Fix32(2) + p;
 	auto p10 = p * Fix32(2);
 	EXPECT_EQ(p11 / Fix32(2), p10); // 3 / 2 = 1.5 ~ 2; the remainder is 0.5 and the quotient is odd, so round up
 	auto p100 = p * Fix32(4);
@@ -232,22 +226,22 @@ TEST(FIXMATH, ROUNDING) {
 	auto p1001 = p100 * Fix32(2) + p;
 	EXPECT_EQ(p1001 / Fix32(2), p100); // 9 / 2 = 4; the remainder is 0.5 and the quotient is even, so do not round
 	auto p1101 = p111 * Fix32(2) - p10 + p;
-	EXPECT_EQ(p1101 / Fix32(8), p10); // 13 / 8 = 1.625 = 2; the divisor is even and the remainder is greater than 0.5, so round up
-	EXPECT_EQ(p1101 / Fix32(5), p11); // 13 / 5 = 2.6 = 3; the divisor is even and the remainder is greater than 0.5, so round up
+	EXPECT_EQ(p1101 / Fix32(8), p10);  // 13 / 8 = 1.625 = 2; the divisor is even and the remainder is greater than 0.5, so round up
+	EXPECT_EQ(p1101 / Fix32(5), p11);  // 13 / 5 = 2.6 = 3; the divisor is even and the remainder is greater than 0.5, so round up
 	EXPECT_EQ(p1101 / Fix32(3), p100); // 13 / 3 = 4.333 = 4; the divisor is odd and the remainder is less than 0.5, so do not round
-	EXPECT_EQ(p1101 / Fix32(4), p11); // 13 / 4 = 3.25 = 3; the divisor is even and the remainder is less than 0.5, so do not round
+	EXPECT_EQ(p1101 / Fix32(4), p11);  // 13 / 4 = 3.25 = 3; the divisor is even and the remainder is less than 0.5, so do not round
 
 	auto h = Fix32(0.5);
 	EXPECT_EQ(p1 * h, Fix32(0));
-	EXPECT_EQ(p11 * h, p10); // 3 / 2 = 1.5 ~ 2; the remainder is 0.5 and the quotient is odd, so round up
-	EXPECT_EQ(p100 * h, p10); // 4 / 2 = 2; exact, so no rounding is needed
-	EXPECT_EQ(p101 * h, p10); // 5 / 2 = 2; the remainder is 0.5 and the quotient is even, so do not round
-	EXPECT_EQ(p111 * h, p100); // 7 / 2 = 4; the remainder is 0.5 and the quotient is odd, so round up
-	EXPECT_EQ(p1001 * h, p100); // 9 / 2 = 4; the remainder is 0.5 and the quotient is even, so do not round
+	EXPECT_EQ(p11 * h, p10);              // 3 / 2 = 1.5 ~ 2; the remainder is 0.5 and the quotient is odd, so round up
+	EXPECT_EQ(p100 * h, p10);             // 4 / 2 = 2; exact, so no rounding is needed
+	EXPECT_EQ(p101 * h, p10);             // 5 / 2 = 2; the remainder is 0.5 and the quotient is even, so do not round
+	EXPECT_EQ(p111 * h, p100);            // 7 / 2 = 4; the remainder is 0.5 and the quotient is odd, so round up
+	EXPECT_EQ(p1001 * h, p100);           // 9 / 2 = 4; the remainder is 0.5 and the quotient is even, so do not round
 	EXPECT_EQ(p1101 * Fix32(0.125), p10); // 13 / 8 = 1.625 = 2; the divisor is even and the remainder is greater than 0.5, so round up
-	EXPECT_EQ(p1101 * Fix32(0.2), p11); // 13 / 5 = 2.6 = 3; the divisor is even and the remainder is greater than 0.5, so round up
+	EXPECT_EQ(p1101 * Fix32(0.2), p11);   // 13 / 5 = 2.6 = 3; the divisor is even and the remainder is greater than 0.5, so round up
 	auto one_third = Fix32(1) / Fix32(3);
-	EXPECT_EQ(p1101 * one_third, p100); // 13 / 3 = 4.333 = 4; the divisor is odd and the remainder is less than 0.5, so do not round
+	EXPECT_EQ(p1101 * one_third, p100);  // 13 / 3 = 4.333 = 4; the divisor is odd and the remainder is less than 0.5, so do not round
 	EXPECT_EQ(p1101 * Fix32(0.25), p11); // 13 / 4 = 3.25 = 3; the divisor is even and the remainder is less than 0.5, so do not round
 }
 
@@ -363,11 +357,17 @@ TEST(FIX32, SQUARE) {
 	EXPECT_FIX_NEAR(sqrt(Fix32(123456789.987654321)), sqrt(123456789.987654321));
 }
 
-template<class T, class U> requires FixedImplicitBinaryOperable<T, U>
-constexpr int func(T, U) { return 1; }
+template <class T, class U>
+	requires FixedImplicitBinaryOperable<T, U>
+constexpr int func(T, U) {
+	return 1;
+}
 
-template<class T, class U> requires FixedImplicitBinaryOperable<U, T> && std::same_as<T, i32>
-constexpr int func(T, U) { return 2; }
+template <class T, class U>
+	requires FixedImplicitBinaryOperable<U, T> && std::same_as<T, i32>
+constexpr int func(T, U) {
+	return 2;
+}
 
 TEST(FIXMATH, CONCEPT) {
 	static_assert(func(1, Fix32(1)) == 2);
@@ -383,4 +383,4 @@ TEST(FIXMATH, CONCEPT) {
 	static_assert(std::is_same_v<std::common_type_t<Fix32, Fix32, Fix32>, Fix32>);
 }
 
-}	// namespace
+} // namespace

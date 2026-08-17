@@ -7,7 +7,7 @@
 
 namespace fixmath {
 
-template<class T, class U>
+template <class T, class U>
 constexpr T _fm_checked_add(T a, T b, U& overflow) {
 #if FIXMATH_LINUX
 	T r;
@@ -29,7 +29,7 @@ constexpr T _fm_checked_add(T a, T b, U& overflow) {
 #endif
 }
 
-template<class T, class U>
+template <class T, class U>
 constexpr T _fm_checked_sub(T a, T b, U& overflow) {
 #if FIXMATH_LINUX
 	T r;

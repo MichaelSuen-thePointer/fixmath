@@ -1,0 +1,54 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+Standard: c++20
+ColumnLimit: 300
+IndentWidth: 4
+ContinuationIndentWidth: 4
+TabWidth: 4
+UseTab: ForContinuationAndIndentation
+AccessModifierOffset: -4
+
+BreakBeforeBraces: Attach
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+BreakTemplateDeclarations: Yes
+
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+AlignConsecutiveAssignments:
+  Enabled: false
+  AcrossEmptyLines: false
+  AcrossComments: false
+  AlignCompound: false
+  PadOperators: true
+
+BinPackArguments: true
+BinPackParameters: true
+PackConstructorInitializers: Never
+ConstructorInitializerIndentWidth: 4
+IndentCaseLabels: true
+IndentPPDirectives: AfterHash
+NamespaceIndentation: None
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+SpaceBeforeParens: ControlStatements
+
+IncludeBlocks: Preserve
+SortIncludes: Never
+FixNamespaceComments: true
+ReflowComments: false
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
+InsertNewlineAtEOF: true
+LineEnding: CRLF
+...

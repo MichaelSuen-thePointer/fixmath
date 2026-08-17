@@ -1,4 +1,4 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
+﻿/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
@@ -7,7 +7,7 @@
 
 namespace fixmath {
 
-template<FixedPolicy policy>
+template <FixedPolicy policy>
 constexpr fixed<policy> sqrt(fixed<policy> a) {
 	using fixed = fixed<policy>;
 	using raw_t = typename fixed::raw_t;

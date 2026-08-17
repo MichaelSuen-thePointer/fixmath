@@ -47,8 +47,7 @@ inline uint64_t _softudiv128(uint64_t u1, uint64_t u0, uint64_t v, uint64_t* r) 
 	while (q1 >= b || q1 * vn0 > b * rhat + un1) {
 		q1 = q1 - 1;
 		rhat = rhat + vn1;
-		if (rhat >= b)
-		break;
+		if (rhat >= b) break;
 	}
 
 	un21 = un64 * b + un1 - q1 * v;
@@ -61,8 +60,7 @@ inline uint64_t _softudiv128(uint64_t u1, uint64_t u0, uint64_t v, uint64_t* r) 
 	while (q0 >= b || q0 * vn0 > b * rhat + un0) {
 		q0 = q0 - 1;
 		rhat = rhat + vn1;
-		if (rhat >= b)
-		break;
+		if (rhat >= b) break;
 	}
 
 	*r = (un21 * b + un0 - q0 * v) >> s;
