@@ -31,9 +31,8 @@ public:
 	constexpr const static raw_t ALL_BITS          = sizeof(raw_t) * CHAR_BIT;
 	constexpr const static raw_t FRACTION_BITS     = policy::fraction_bits;
 	constexpr const static raw_t INTEGER_BITS      = ALL_BITS - FRACTION_BITS;
-	constexpr const static raw_t RATIO             = raw_t(1) << FRACTION_BITS;
-	constexpr const static raw_t FRACTION_MASK     = raw_t(uraw_t(-1) >> INTEGER_BITS);
-	constexpr const static raw_t INTEGER_MASK      = raw_t(uraw_t(-1) << FRACTION_BITS);
+	constexpr const static raw_t FRACTION_MASK     = ::std::bit_cast<raw_t>(uraw_t(-1) >> INTEGER_BITS);
+	constexpr const static raw_t INTEGER_MASK      = ::std::bit_cast<raw_t>(uraw_t(-1) << FRACTION_BITS);
 	constexpr const static raw_t FRACTION_MSB_MASK = raw_t(1) << (FRACTION_BITS - 1);
 
 	using common_int32_t = ::std::common_type_t<raw_t, int32_t>;
@@ -50,7 +49,7 @@ public:
 	constexpr const static float   MIN_REPRESENTABLE_FLOAT   = policy::strict_mode ? -MAX_REPRESENTABLE_FLOAT : -_fm_assemble_float(0, INTEGER_BITS - 1);
 	// clang-format on
 
-	constexpr static fixed epsilon() { return fixed::from_raw(1LL); }
+	constexpr static fixed epsilon() { return fixed::from_raw(raw_t(1)); }
 	constexpr static fixed nan() { return fixed::from_raw(::std::numeric_limits<raw_t>::min()); }
 	constexpr static fixed inf() { return fixed::from_raw(::std::numeric_limits<raw_t>::max()); }
 	constexpr static fixed max_sat() { return fixed::from_raw(::std::numeric_limits<raw_t>::max()); }
@@ -90,6 +89,8 @@ private:
 	struct from_raw_t {};
 	inline constexpr fixed(from_raw_t, raw_t v)
 		: value(v) {}
+	inline constexpr fixed(from_raw_t, uraw_t v)
+		: value(::std::bit_cast<raw_t>(v)) {}
 };
 
 } // namespace fixmath

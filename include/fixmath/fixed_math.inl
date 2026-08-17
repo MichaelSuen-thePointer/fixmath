@@ -73,6 +73,11 @@ constexpr fixed<policy> sqrt(fixed<policy> a) {
 			}
 		}
 	}
+	if constexpr (!policy::ignore_mode) {
+		if (FIXMATH_UNLIKELY(result > static_cast<uraw_t>(fixed::max_sat().raw()))) {
+			return fixed::max_sat();
+		}
+	}
 	return fixed::from_raw(result);
 }
 
