@@ -20,6 +20,7 @@ using Fix32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath
 using Fix8Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 using Fix8Zero32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToZero>>;
 using Fix16Even64 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 16, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
+using Fix48Even64 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 48, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
 
 using i32 = fixmath::int32_t;
 using i64 = fixmath::int64_t;
@@ -315,6 +316,13 @@ TEST(FIXMATH, DIV) {
 	EXPECT_EQ(Fix32::max_fix() / Fix32::max_fix(), 1);
 	EXPECT_EQ(Fix32::min_fix() / Fix32::min_fix(), 1);
 	EXPECT_FIX_DOMAIN_ERROR(Fix32(1.1111) / Fix32(0));
+}
+
+TEST(FIXMATH, DIV_SIMPLIFIED_RANGE) {
+	const auto one = Fix48Even64::from_raw(i64(1) << 48);
+	for (i64 raw : {-(i64(1) << 20), i64(-32769), i64(-32768), i64(32767), i64(32768), i64(1) << 20}) {
+		EXPECT_EQ((Fix48Even64::from_raw(raw) / one).raw(), raw);
+	}
 }
 
 TEST(FIXMATH, UNARY) {
