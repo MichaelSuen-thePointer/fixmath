@@ -50,6 +50,8 @@ Division has two optimization levels:
 
 Other 64-bit cases use the general `_fm_div128` implementation. Its backend prefers target instructions or intrinsics and otherwise uses normalized software long division with 32-bit digits. Fast and general paths share the same remainder-based rounding and final range checks.
 
+See [Software 128-bit Division](soft-division-128.md) for the signed wrapper, normalization, two quotient-digit estimates, correction loops, and remainder recovery used by this backend.
+
 ## Special values and fast-path boundaries
 
 Strict mode handles `nan`, `inf`, division by zero, and other special combinations before entering the integer core. Saturation and Ignore modes also handle division by zero before the division core. Fast paths therefore do not redefine special-value semantics; they only have to remain bit-for-bit equivalent to the general finite-value path.
