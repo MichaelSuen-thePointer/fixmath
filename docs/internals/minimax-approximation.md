@@ -2,11 +2,11 @@
 
 ## Implementation status
 
-The first implementation is available under `tools/approx/`. It supports checked-in JSON specifications for the factored basis `x * q(x^2)`, a shared signed Q format, round-to-even or round-to-zero Horner evaluation, deterministic neighborhood quantization, and sampled verification. Run the Q32.32 sine example with:
+The first implementation is available under `tools/approx/`. It supports explicit local JSON specifications for the factored basis `x * q(x^2)`, a shared signed Q format, round-to-even or round-to-zero Horner evaluation, deterministic neighborhood quantization, and sampled verification. Keep working specifications and generated artifacts under the ignored `build/approx/` tree. For example:
 
 ```text
 python -m pip install -r tools/approx/requirements.txt
-python tools/approx/generate.py --spec tools/approx/specs/sin_q32_32.json --output build/approx/sin_q32_32
+python tools/approx/generate.py --spec build/approx/specs/sin_q32_32.json --output build/approx/sin_q32_32
 ```
 
 The current verifier honestly labels its result `sampled`; interval-bounded certification and Sollya cross-checking remain later work. A successful run means the configured samples, Remez extrema neighborhoods, overflow checks, and target all passed, not that every raw input was exhaustively proved.
@@ -34,11 +34,11 @@ q(z) = a_0 + a_1 z + ... + a_(m-1) z^(m-1)
 "degree": 9
 ```
 
-This example requests five coefficients and therefore a degree-nine polynomial. Use a separate specification name and output directory for each candidate so their artifacts remain easy to compare:
+This example requests five coefficients and therefore a degree-nine polynomial. Store each working specification under `build/approx/specs/`, and use a separate name and output directory for each candidate so their local artifacts remain easy to compare:
 
 ```text
-python tools/approx/generate.py --spec tools/approx/specs/sin_q32_32_m5.json --output build/approx/sin_q32_32_m5
-python tools/approx/generate.py --spec tools/approx/specs/sin_q32_32_m6.json --output build/approx/sin_q32_32_m6
+python tools/approx/generate.py --spec build/approx/specs/sin_q32_32_m5.json --output build/approx/sin_q32_32_m5
+python tools/approx/generate.py --spec build/approx/specs/sin_q32_32_m6.json --output build/approx/sin_q32_32_m6
 ```
 
 Select the minimum count with the following manual loop:
@@ -48,6 +48,7 @@ Select the minimum count with the following manual loop:
 3. If the candidate passes, reduce the count by one and regenerate instead of accepting the larger polynomial immediately.
 4. Accept `m` as the minimum sampled candidate only after `m` passes the final exact-evaluator check and `m - 1` fails it.
 5. Compare `manifest.json`, not only the Chebyshev estimate. Review the real Remez coefficients, emitted raw coefficients, fixed-coefficient extrema, maximum implemented error, worst raw input, intermediate width, and verification level.
+6. Record the accepted transform, raw coefficients, coefficient order, minimum-term comparison, measured error, and verification level in `docs/internals/function-approximations.md`.
 
 A zero exit status means the configured target passed at the manifest's recorded verification level. At present that level is `sampled`, so the result may be described as the minimum sampled candidate, not as a globally certified minimum. Interval-bounded or exhaustive verification is still required before making a whole-domain proof.
 
@@ -286,15 +287,15 @@ The release criterion should be expressed in raw units or ULPs of the target Fix
 
 ## Proposed command-line workflow
 
-The primary interface should consume a checked-in JSON specification instead of relying on a long command line. JSON keeps the first implementation within the Python standard library and makes every coefficient set reproducible.
+The primary interface consumes an explicit JSON specification instead of relying on a long command line. JSON keeps the first implementation within the Python standard library and makes each local experiment reproducible. Working specifications live under `build/approx/specs/`; they are not tracked after the reviewed result has been recorded in the function-approximation document.
 
 ```text
 python tools/approx/generate.py \
-    --spec tools/approx/specs/sin_q32_32.json \
+    --spec build/approx/specs/sin_q32_32.json \
     --output build/approx/sin_q32_32
 ```
 
-The command resolves and validates the specification, runs all configured phases, writes artifacts to the output directory, and returns a nonzero exit status if convergence, range, overflow, or accuracy requirements fail. A future `--check` mode may regenerate into memory and compare against checked-in artifacts without rewriting them.
+The command resolves and validates the specification, runs all configured phases, writes local artifacts to the output directory, and returns a nonzero exit status if convergence, range, overflow, or accuracy requirements fail. Accepted results are transferred to `docs/internals/function-approximations.md`; the repository does not retain a specification directory or generated approximation artifacts.
 
 Reference functions should come from a reviewed registry in `specification.py`. The first implementation must not evaluate arbitrary Python supplied by a JSON file. Named transformed functions such as `sin_over_x` may be registered when range reduction requires them.
 
@@ -325,7 +326,7 @@ The `.inl` output contains only the raw integer constants and metadata required 
 
 The report summarizes convergence, equioscillation, quantization changes, overflow margins, and accuracy results. It should make review possible without manually decoding the manifest, but must not be the only place where evidence is stored.
 
-Tracked artifacts should be byte-for-byte reproducible. Wall-clock timestamps, temporary paths, process IDs, and unordered mappings must not affect generated content. If timestamps are useful for local reports, keep them outside tracked outputs.
+Generated artifacts should be byte-for-byte reproducible so reviewers can repeat a local experiment before its result is documented. Wall-clock timestamps, temporary paths, process IDs, and unordered mappings must not affect generated content.
 
 ## Verification levels
 

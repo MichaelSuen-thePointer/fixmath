@@ -1,6 +1,6 @@
 # Elementary Function Approximation Transforms
 
-This document records the compact mathematical transform used before generating polynomial coefficients. Each function entry uses the same fields so more functions can be added without repeating the minimax algorithm described in [Offline Minimax Approximation Tool](minimax-approximation.md).
+This document is the repository record for reviewed approximation results. It captures the compact mathematical transform, selected raw coefficients, and verification evidence after local working specifications and generated artifacts have been discarded. Each function entry uses the same fields so more functions can be added without repeating the minimax algorithm described in [Offline Minimax Approximation Tool](minimax-approximation.md).
 
 ## Entry format
 

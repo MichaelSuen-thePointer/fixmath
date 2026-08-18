@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate fixed-point polynomial coefficients from a checked-in JSON spec."""
+"""Generate fixed-point polynomial coefficients from an explicit JSON spec."""
 
 from __future__ import annotations
 

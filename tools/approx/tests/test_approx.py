@@ -1,4 +1,6 @@
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -26,7 +28,29 @@ class FixedEvaluatorTests(unittest.TestCase):
 		self.assertEqual(evaluate_factored(0, [123, -456, 789], 64, 32, "RoundToEven").raw, 0)
 
 	def test_example_spec_is_explicit_and_valid(self):
-		spec = load_spec(ROOT / "specs" / "sin_q32_32.json")
+		raw_spec = {
+			"name": "sin_q32_32_test",
+			"function": "sin_over_x_squared",
+			"reference_function": "sin",
+			"public_interval": ["0", "pi/4"],
+			"reduced_interval": ["0", "pi^2/16"],
+			"range_reduction": "none; z = round_to_even(x * x)",
+			"basis": {"kind": "factored", "variable": "x_squared", "powers": [0, 1, 2, 3, 4, 5], "reconstruction": "x_times_polynomial"},
+			"degree": 11,
+			"error_objective": "absolute",
+			"q_format": {"width": 64, "fraction_bits": 32},
+			"arithmetic_mode": "SaturationMode",
+			"rounding_mode": "RoundToEven",
+			"precision_digits": 100,
+			"accuracy": {"objective": "absolute", "unit": "ulp", "maximum": 1},
+			"remez": {"max_iterations": 20, "grid_size": 8192, "tolerance": "1e-70"},
+			"quantization": {"radius": 3, "passes": 3},
+			"verification": {"samples": 1000001},
+		}
+		with tempfile.TemporaryDirectory() as directory:
+			path = Path(directory) / "spec.json"
+			path.write_text(json.dumps(raw_spec), encoding="utf-8")
+			spec = load_spec(path)
 		self.assertEqual(spec.fraction_bits, 32)
 		self.assertEqual(spec.powers, (0, 1, 2, 3, 4, 5))
 		self.assertLess(abs(spec.public_interval[1] - mp.pi / 4), mp.mpf("1e-90"))
