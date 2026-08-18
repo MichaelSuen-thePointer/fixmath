@@ -17,7 +17,7 @@ Fixmath is an experimental, header-only C++20 fixed-point arithmetic library. It
 
 ## Requirements
 
-- A C++20 compiler with concepts and `std::bit_cast` support.
+- A conforming C++20 compiler and standard library. Fixmath specifically depends on `std::bit_cast`, C++20 signed left-shift semantics, `operator<=>`, and concepts; see [Required C++20 Features](docs/design/cpp20-requirements.md).
 - CMake 3.10 or newer to build the tests.
 - Network access during the first test configuration, because CMake fetches GoogleTest.
 

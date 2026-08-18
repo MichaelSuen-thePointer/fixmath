@@ -5,6 +5,7 @@ This directory documents Fixmath in layers: design constraints, data model, algo
 ## Design
 
 - [Design principles](design/principles.md): policy-based design, cross-platform consistency, exception-free behavior, and coding style.
+- [Required C++20 features](design/cpp20-requirements.md): `std::bit_cast`, signed left-shift semantics, three-way comparison, and concepts.
 
 ## Concepts
 

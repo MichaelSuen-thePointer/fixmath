@@ -61,7 +61,7 @@ Diagnostics are controlled by `FIXMATH_ERROR` / `FIXMATH_ASSERT`. The default im
 
 The project follows `.clang-format` and `AGENTS.md` at the repository root:
 
-- Use C++20 and keep the library header-only. Public declarations belong in `.hpp` files and template implementations in `.inl` files.
+- Use C++20 and keep the library header-only. The specific language and library dependencies are documented in [Required C++20 Features](cpp20-requirements.md). Public declarations belong in `.hpp` files and template implementations in `.inl` files.
 - Functions and variables use `snake_case`, types use descriptive names, compile-time constants use `UPPER_SNAKE_CASE`, and internal helpers use the `_fm_` prefix.
 - Use tabs for indentation, place opening braces on the declaration line, and preserve the MPL 2.0 notice at the top of source files.
 - Keep template parameters in internal helpers only when the result type or compile-time policy genuinely controls the implementation.
