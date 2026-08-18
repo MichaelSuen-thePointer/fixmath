@@ -8,7 +8,7 @@
 namespace fixmath {
 
 template <FixedPolicy policy, ::std::size_t N>
-fixed<policy> _fm_horner_generic(typename fixed<policy>::raw_t x, const typename fixed<policy>::raw_t (*coefficients)[N]) {
+typename fixed<policy>::raw_t _fm_horner_generic(typename fixed<policy>::raw_t x, const typename fixed<policy>::raw_t (*coefficients)[N]) {
 	using fixed = fixed<policy>;
 	static_assert(N > 0);
 
@@ -17,11 +17,11 @@ fixed<policy> _fm_horner_generic(typename fixed<policy>::raw_t x, const typename
 	for (::std::size_t i = 1; i < N; ++i) {
 		result = result * fixed_x + fixed::from_raw((*coefficients)[i]);
 	}
-	return result;
+	return result.raw();
 }
 
 template <FixedPolicy policy, ::std::size_t N>
-fixed<policy> _fm_horner_fast128(typename fixed<policy>::raw_t x, const typename fixed<policy>::raw_t (*coefficients)[N]) {
+typename fixed<policy>::raw_t _fm_horner_fast128(typename fixed<policy>::raw_t x, const typename fixed<policy>::raw_t (*coefficients)[N]) {
 	using fixed = fixed<policy>;
 	using raw_t = typename fixed::raw_t;
 	static_assert(sizeof(raw_t) == sizeof(int64_t));
@@ -38,11 +38,11 @@ fixed<policy> _fm_horner_fast128(typename fixed<policy>::raw_t x, const typename
 		(void)normalized_high;
 		result += (*coefficients)[i];
 	}
-	return fixed::from_raw(result);
+	return result;
 }
 
 template <FixedPolicy policy, ::std::size_t N>
-fixed<policy> _fm_horner_fast64(typename fixed<policy>::raw_t x, const typename fixed<policy>::raw_t (*coefficients)[N]) {
+typename fixed<policy>::raw_t _fm_horner_fast64(typename fixed<policy>::raw_t x, const typename fixed<policy>::raw_t (*coefficients)[N]) {
 	using fixed = fixed<policy>;
 	using raw_t = typename fixed::raw_t;
 	static_assert(fixed::FRACTION_BITS == 32);
@@ -56,14 +56,15 @@ fixed<policy> _fm_horner_fast64(typename fixed<policy>::raw_t x, const typename 
 		result = _fm_div2n_round<policy, fixed::FRACTION_BITS>(product);
 		result += (*coefficients)[i];
 	}
-	return fixed::from_raw(result);
+	return result;
 }
 
 template <FixedPolicy policy>
 	requires(fixed<policy>::FRACTION_BITS == 32)
-fixed<policy> _fm_sincos(fixed<policy> a, bool cosine) {
+typename fixed<policy>::raw_t _fm_sincos(typename fixed<policy>::raw_t a, bool cosine) {
 	using fixed = fixed<policy>;
 	using raw_t = typename fixed::raw_t;
+	using uraw_t = typename fixed::uraw_t;
 	// See docs/internals/function-approximations.md for this Q32.32 candidate.
 	const static raw_t SIN_COEFFICIENTS[] = {
 		11654LL, -852064LL, 35791363LL, -715827879LL, 4294967296LL,
@@ -72,15 +73,17 @@ fixed<policy> _fm_sincos(fixed<policy> a, bool cosine) {
 		104756LL, -5964319LL, 178956784LL, -2147483636LL, 4294967296LL,
 	};
 
-	if (a > fixed::quarter_pi()) {
-		a = fixed::half_pi() - a;
+	if (a > fixed::quarter_pi().raw()) {
+		a = fixed::half_pi().raw() - a;
 		cosine = !cosine;
 	}
-	const fixed square = a * a;
+	const uraw_t a_raw = static_cast<uraw_t>(a);
+	const raw_t square = static_cast<raw_t>(_fm_umul64<policy, fixed::FRACTION_BITS>(a_raw, a_raw));
 	if (cosine) {
-		return _fm_horner_fast64<policy>(square.raw(), &COS_COEFFICIENTS);
+		return _fm_horner_fast64<policy>(square, &COS_COEFFICIENTS);
 	}
-	return a * _fm_horner_fast64<policy>(square.raw(), &SIN_COEFFICIENTS);
+	const raw_t polynomial = _fm_horner_fast64<policy>(square, &SIN_COEFFICIENTS);
+	return static_cast<raw_t>(_fm_umul64<policy, fixed::FRACTION_BITS>(a_raw, static_cast<uraw_t>(polynomial)));
 }
 
 template <FixedPolicy policy>
@@ -110,8 +113,8 @@ fixed<policy> sin(fixed<policy> a) {
 		reduced = pi - reduced;
 	}
 
-	const fixed result = _fm_sincos(fixed::from_raw(reduced), false);
-	return negate ? -result : result;
+	const raw_t result = _fm_sincos<policy>(reduced, false);
+	return fixed::from_raw(negate ? -result : result);
 }
 
 template <FixedPolicy policy>
@@ -140,8 +143,8 @@ fixed<policy> cos(fixed<policy> a) {
 		reduced = pi - reduced;
 	}
 
-	const fixed result = _fm_sincos(fixed::from_raw(reduced), true);
-	return negate ? -result : result;
+	const raw_t result = _fm_sincos<policy>(reduced, true);
+	return fixed::from_raw(negate ? -result : result);
 }
 
 template <FixedPolicy policy>

@@ -109,6 +109,22 @@ void check_fast128_horner() {
 }
 
 template <class Fix>
+void check_umul64() {
+	using policy = typename Fix::policy;
+	using raw_t = typename Fix::raw_t;
+	const raw_t scale = static_cast<raw_t>(Fix::URATIO);
+	const raw_t max_input = Fix::quarter_pi().raw();
+	const raw_t inputs[][2] = {
+		{0, max_input}, {1, max_input}, {max_input, max_input}, {max_input - 1, max_input}, {max_input, scale - 1}, {max_input, scale},
+	};
+	for (const auto& input : inputs) {
+		const Fix a = Fix::from_raw(input[0]);
+		const Fix b = Fix::from_raw(input[1]);
+		EXPECT_EQ(static_cast<raw_t>(_fm_umul64<policy, Fix::FRACTION_BITS>(static_cast<typename Fix::uraw_t>(a.raw()), static_cast<typename Fix::uraw_t>(b.raw()))), (a * b).raw());
+	}
+}
+
+template <class Fix>
 void check_max_fraction_bits() {
 	using raw_t = typename Fix::raw_t;
 	using uraw_t = typename Fix::uraw_t;
@@ -490,6 +506,14 @@ TEST(FIXMATH, HORNER_Q32_FAST128) {
 	check_fast128_horner<Fix32Zero>();
 	check_fast128_horner<Fix32Strict>();
 	check_fast128_horner<Fix32Ignore>();
+}
+
+TEST(FIXMATH, UMUL64) {
+	static_assert(static_cast<Fix32::uraw_t>(Fix32::quarter_pi().raw()) * static_cast<Fix32::uraw_t>(Fix32::quarter_pi().raw()) > static_cast<Fix32::uraw_t>(std::numeric_limits<Fix32::raw_t>::max()));
+	check_umul64<Fix32>();
+	check_umul64<Fix32Zero>();
+	check_umul64<Fix32Strict>();
+	check_umul64<Fix32Ignore>();
 }
 
 TEST(FIXMATH, SIN_Q32_32_STRICT_SPECIAL_VALUES) {

@@ -8,7 +8,7 @@
 #if FIXMATH_WIN_X64
 #	include <intrin.h>
 #endif
-#include "fixmath_speedups.inl"
+#include "fixmath_addsub128.inl"
 #include "fixmath_clz.inl"
 #include "fixmath_muldiv128.inl"
 

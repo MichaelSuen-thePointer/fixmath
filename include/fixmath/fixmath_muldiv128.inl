@@ -111,6 +111,12 @@ inline T _fm_div2n_round(T a) {
 	return a;
 }
 
+template <class policy, size_t N>
+inline uint64_t _fm_umul64(uint64_t a, uint64_t b) {
+	// The caller must prove that the product fits uint64_t.
+	return _fm_div2n_round<policy, N>(a * b);
+}
+
 template <class policy, class T>
 inline T _fm_div2n_round(T a, uint64_t n) {
 	// Divide by 2^N and round to nearest, ties to even.
