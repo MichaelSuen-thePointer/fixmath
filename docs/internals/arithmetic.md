@@ -29,6 +29,8 @@ When `N < 62` and both `A` and `B` can be narrowed to `int32_t` without loss, th
 
 The `N < 62` condition also satisfies the sign-bit safety constraint of the power-of-two rounding helper. This branch changes only the intermediate width; it does not change the mathematical formula or rounding result.
 
+See [Power-of-two Division and Rounding](div2n-rounding.md) for why `_fm_div2n_round` can use an arithmetic right shift for signed round-to-even results even though a bare right shift does not implement signed division truncated toward zero.
+
 ## Division
 
 To preserve `N` fractional bits before integer division, the dividend is first scaled up:
