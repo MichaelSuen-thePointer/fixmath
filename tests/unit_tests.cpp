@@ -30,6 +30,10 @@ template <class Raw, Raw FractionBits, arithmetic_mode ArithmeticMode, rounding_
 using TestFix = fixed<fixed_policy<Raw, FractionBits, ArithmeticMode, RoundingMode>>;
 
 using Fix3Even8Ignore = TestFix<std::int8_t, 3, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
+using Fix4Even8Ignore = TestFix<std::int8_t, 4, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
+using Fix5Even8Ignore = TestFix<std::int8_t, 5, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
+using Fix6Even8Ignore = TestFix<std::int8_t, 6, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
+using Fix7Even8Ignore = TestFix<std::int8_t, 7, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
 using Fix7Even16Ignore = TestFix<std::int16_t, 7, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
 using Fix7Even16Sat = TestFix<std::int16_t, 7, arithmetic_mode::SaturationMode, rounding_mode::RoundToEven>;
 using Fix31Zero32Ignore = TestFix<int32_t, 31, arithmetic_mode::Ignore, rounding_mode::RoundToZero>;
@@ -61,6 +65,18 @@ const double ABSERROR = static_cast<double>(fix32l::epsilon());
 
 template <class T>
 concept HasRatio = requires { T::RATIO; };
+
+template <class T>
+concept HasTwoPi = requires { T::two_pi(); };
+
+template <class T>
+concept HasPi = requires { T::pi(); };
+
+template <class T>
+concept HasHalfPi = requires { T::half_pi(); };
+
+template <class T>
+concept HasQuarterPi = requires { T::quarter_pi(); };
 
 template <class Fix>
 void check_max_fraction_bits() {
@@ -335,6 +351,28 @@ TEST(FIXMATH, HIGH_FRACTION_64BIT_PATHS) {
 }
 
 TEST(FIXMATH, CONSTANT) {
+	static_assert(Fix32::two_pi().raw() == 0x6487ed511LL);
+	static_assert(Fix32::pi().raw() == 0x3243f6a88LL);
+	static_assert(Fix32::half_pi().raw() == 0x1921fb544LL);
+	static_assert(Fix32::quarter_pi().raw() == 0xc90fdaa2LL);
+
+	static_assert(HasTwoPi<Fix4Even8Ignore>);
+	static_assert(!HasTwoPi<Fix5Even8Ignore>);
+	static_assert(HasPi<Fix5Even8Ignore>);
+	static_assert(!HasPi<Fix6Even8Ignore>);
+	static_assert(HasHalfPi<Fix6Even8Ignore>);
+	static_assert(!HasHalfPi<Fix7Even8Ignore>);
+	static_assert(HasQuarterPi<Fix7Even8Ignore>);
+
+	static_assert(Fix4Even8Ignore::two_pi().raw() == 100);
+	static_assert(Fix5Even8Ignore::pi().raw() == 100);
+	static_assert(Fix6Even8Ignore::half_pi().raw() == 100);
+	static_assert(Fix7Even8Ignore::quarter_pi().raw() == 100);
+	static_assert(Fix16Even64::two_pi().raw() == 411774);
+	static_assert(Fix48Even64::pi().raw() == 884279719003555LL);
+	static_assert(Fix62Even64Sat::half_pi().raw() == 7244019458077122842LL);
+	static_assert(Fix63Even64Sat::quarter_pi().raw() == 7244019458077122842LL);
+
 	EXPECT_EQ(double(Fix32::epsilon()), 2.3283064365386962890625e-10);
 	EXPECT_FALSE(Fix32::nan().is_nan());
 	EXPECT_FALSE(Fix32::max_sat().is_inf());

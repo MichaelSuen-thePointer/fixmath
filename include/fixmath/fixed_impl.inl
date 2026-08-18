@@ -14,6 +14,38 @@
 
 namespace fixmath {
 
+template <FixedPolicy policy>
+constexpr fixed<policy> fixed<policy>::two_pi()
+	requires(INTEGER_BITS >= 4)
+{
+	constexpr uint64_t fractional = 0x243f6a8885a308d3ULL;
+	return fixed::from_raw(static_cast<uraw_t>((uraw_t{6} << FRACTION_BITS) | static_cast<uraw_t>(fractional >> (63 - FRACTION_BITS))));
+}
+
+template <FixedPolicy policy>
+constexpr fixed<policy> fixed<policy>::pi()
+	requires(INTEGER_BITS >= 3)
+{
+	constexpr uint64_t fractional = 0x121fb54442d18469ULL;
+	return fixed::from_raw(static_cast<uraw_t>((uraw_t{3} << FRACTION_BITS) | static_cast<uraw_t>(fractional >> (63 - FRACTION_BITS))));
+}
+
+template <FixedPolicy policy>
+constexpr fixed<policy> fixed<policy>::half_pi()
+	requires(INTEGER_BITS >= 2)
+{
+	constexpr uint64_t fractional = 0x490fdaa22168c234ULL;
+	return fixed::from_raw(static_cast<uraw_t>((uraw_t{1} << FRACTION_BITS) | static_cast<uraw_t>(fractional >> (63 - FRACTION_BITS))));
+}
+
+template <FixedPolicy policy>
+constexpr fixed<policy> fixed<policy>::quarter_pi()
+	requires(INTEGER_BITS >= 1)
+{
+	constexpr uint64_t fractional = 0x6487ed5110b4611aULL;
+	return fixed::from_raw(static_cast<uraw_t>(fractional >> (63 - FRACTION_BITS)));
+}
+
 // clang-format off
 template<FixedPolicy policy>
 constexpr fixed<policy>::fixed(float value)

@@ -60,6 +60,16 @@ public:
 	constexpr static fixed max_int() { return fixed(MAX_REPRESENTABLE_INTEGER); }
 	constexpr static fixed min_int() { return fixed(MIN_REPRESENTABLE_INTEGER); }
 
+	// See docs/internals/pi-constants.md for the Q0.63 constant derivation.
+	constexpr static fixed two_pi()
+		requires(INTEGER_BITS >= 4);
+	constexpr static fixed pi()
+		requires(INTEGER_BITS >= 3);
+	constexpr static fixed half_pi()
+		requires(INTEGER_BITS >= 2);
+	constexpr static fixed quarter_pi()
+		requires(INTEGER_BITS >= 1);
+
 	static constexpr fixed from_raw(raw_t v) { return fixed(from_raw_t{}, v); }
 	static constexpr fixed from_raw(uraw_t v) { return fixed(from_raw_t{}, v); }
 

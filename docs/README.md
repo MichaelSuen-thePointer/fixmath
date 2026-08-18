@@ -19,6 +19,7 @@ This directory documents Fixmath in layers: design constraints, data model, algo
 - [Power-of-two division and rounding](internals/div2n-rounding.md): `_fm_div2n_round`, signed arithmetic shifts, discarded-bit remainders, and ties-to-even correction.
 - [Offline minimax approximation tool](internals/minimax-approximation.md): local coefficient generator design and first implementation, including its dependencies, Chebyshev/Remez pipeline, raw-coefficient optimization, artifacts, and verification.
 - [Polynomial evaluation](internals/polynomial.md): raw-coefficient Horner evaluation, fused multiply-add scaling, and when normalization can be deferred.
+- [Pi constants](internals/pi-constants.md): offline Q0.63 generation, target-format truncation, and availability constraints.
 - [`sqrt`](internals/sqrt.md): digit-by-digit integer square root, scaling, and rounding.
 
 ## Integration
