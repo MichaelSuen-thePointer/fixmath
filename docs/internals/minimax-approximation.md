@@ -11,6 +11,46 @@ python tools/approx/generate.py --spec tools/approx/specs/sin_q32_32.json --outp
 
 The current verifier honestly labels its result `sampled`; interval-bounded certification and Sollya cross-checking remain later work. A successful run means the configured samples, Remez extrema neighborhoods, overflow checks, and target all passed, not that every raw input was exhaustively proved.
 
+## Using the current tool
+
+The current implementation generates and verifies one explicitly specified polynomial size per run. It does not yet search a degree range or automatically select the minimum coefficient count. Chebyshev fitting records a quick error estimate for the requested size, but the user must manually try adjacent sizes because Remez refinement, Q-format coefficient quantization, and stage-by-stage evaluator rounding can change the final result.
+
+For the supported factored form
+
+```text
+p(x) = x * q(x^2)
+q(z) = a_0 + a_1 z + ... + a_(m-1) z^(m-1)
+```
+
+`m` coefficients produce the odd powers `x^1` through `x^(2m-1)`. Set both fields consistently in the JSON specification:
+
+```json
+"basis": {
+  "kind": "factored",
+  "variable": "x_squared",
+  "powers": [0, 1, 2, 3, 4],
+  "reconstruction": "x_times_polynomial"
+},
+"degree": 9
+```
+
+This example requests five coefficients and therefore a degree-nine polynomial. Use a separate specification name and output directory for each candidate so their artifacts remain easy to compare:
+
+```text
+python tools/approx/generate.py --spec tools/approx/specs/sin_q32_32_m5.json --output build/approx/sin_q32_32_m5
+python tools/approx/generate.py --spec tools/approx/specs/sin_q32_32_m6.json --output build/approx/sin_q32_32_m6
+```
+
+Select the minimum count with the following manual loop:
+
+1. Start with a plausible coefficient count and run the complete generator.
+2. If Remez does not converge, an intermediate overflows, or `maximum_implemented_error_ulp` exceeds the requested target, increase the count and try again.
+3. If the candidate passes, reduce the count by one and regenerate instead of accepting the larger polynomial immediately.
+4. Accept `m` as the minimum sampled candidate only after `m` passes the final exact-evaluator check and `m - 1` fails it.
+5. Compare `manifest.json`, not only the Chebyshev estimate. Review the real Remez coefficients, emitted raw coefficients, fixed-coefficient extrema, maximum implemented error, worst raw input, intermediate width, and verification level.
+
+A zero exit status means the configured target passed at the manifest's recorded verification level. At present that level is `sampled`, so the result may be described as the minimum sampled candidate, not as a globally certified minimum. Interval-bounded or exhaustive verification is still required before making a whole-domain proof.
+
 ## Purpose and scope
 
 This document specifies the planned offline tool that will generate, optimize, verify, and emit fixed-point polynomial coefficients for Fixmath elementary functions. It is both the design basis for implementing that tool and the explanation of how generated coefficient tables are produced.
