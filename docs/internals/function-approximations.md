@@ -57,3 +57,68 @@ Fixing the constant term before Remez refinement prevents coefficient optimizati
 - **Measured error:** maximum sampled continuous error `0.2763795 ulp`; maximum exact-evaluator error `1 ulp` over 1,000,001 uniformly spaced raw inputs; `cos(0)` evaluates to raw `4294967296` exactly.
 - **Minimum-term check:** the tested four-term basis through `x^6` reached `139 ulp`, so five terms are the minimum sampled candidate among the tested sizes.
 - **Verification level:** `sampled`; an independent 319,990-input cross-check and continuous stationary-point search agreed, but this candidate is not yet an exhaustive or interval-bounded whole-domain result.
+
+## `tan`
+
+The planned Q32.32 implementation uses a deliberately weak accuracy contract. Only the two polynomial kernels below are sampled to at most `1 ulp` under their stated Q32.32 evaluators. Argument reduction, the two rational reflection reconstructions, the reciprocal, and the final reciprocal-plus-residual reconstruction do not currently carry a `1 ulp` guarantee. Consequently, this entry must not be read as a whole-domain `tan` accuracy claim.
+
+After periodic and sign reduction, let `a` be nonnegative and lie in `[0, pi/2]`. The first-quadrant implementation is split into four intervals:
+
+| Interval | Reduced argument | Planned reconstruction |
+| --- | --- | --- |
+| `a in [0, 0.46]` | `u = a` | `T(u)` |
+| `a in (0.46, pi/4]` | `u = pi/4 - a` | `(1 - T(u)) / (1 + T(u))` |
+| `a in (pi/4, pi/2 - 0.46)` | `u = a - pi/4` | `(1 + T(u)) / (1 - T(u))` |
+| `a in [pi/2 - 0.46, pi/2)` | `d = pi/2 - a` | `1/d + C(d)` |
+
+Here `T` is the direct tangent kernel and `C` is the cotangent residual kernel. The exact pole at `a = pi/2` is handled separately according to the arithmetic policy. Returning exactly one for `a = pi/4` is permitted as an exact special case. For Q32.32, the intended downward-safe raw boundaries are `0.46 -> 1975684956`, `pi/4 -> 3373259426`, `pi/2 - 0.46 -> 4770833896`, and `pi/2 -> 6746518852`.
+
+The direct tangent and cotangent-residual intervals are symmetric under `a -> pi/2 - a`: both kernels receive an argument in `[0, 0.46]`. The two middle reflection intervals are likewise symmetric around `pi/4` and both map to `u in [0, pi/4 - 0.46]`. They evaluate only one tangent polynomial. The reflection path should retain one guard bit from the final `u * q(u^2)` product before evaluating the rational identity. This guard bit improved the sampled reflection result, but the weak contract intentionally does not promote that observation to a guaranteed final error bound.
+
+The fourth interval separates the cotangent pole:
+
+```text
+cot(d) = 1/d + C(d)
+C(d) = cot(d) - 1/d ~= d * q_c(d^2)
+```
+
+`C` is smooth at zero, with `C(0) = 0` and `q_c(0) = -1/3`. The planned path performs one reciprocal, one residual polynomial, and one final addition; it does not evaluate the tangent kernel and then take its reciprocal. Ordinary Q32.32 reciprocal and final-add rounding, as well as loss in a Q32.32-only `pi/2 - a` reduction, remain outside the kernel guarantee.
+
+### Tangent kernel candidate: Q32.32, six terms
+
+- **Core interval:** `u in [0, 0.46]`.
+- **Structure:** odd factorization `T(u) = u * q_t(u^2)`.
+- **Basis:** `u^1, u^3, u^5, u^7, u^9, u^11`.
+- **Fit target:** `tan(sqrt(z)) / sqrt(z)`, with value one at `z = 0`.
+- **Policy:** signed Q32.32 coefficients with round-to-nearest, ties-to-even stage-by-stage evaluation.
+- **Raw coefficients by ascending power:** `u^1 = 4294967295`, `u^3 = 1431656075`, `u^5 = 572645510`, `u^7 = 232123842`, `u^9 = 90993159`, `u^11 = 49715989`.
+- **Raw Horner order for `q_t(u^2)`:** `[49715989, 90993159, 232123842, 572645510, 1431656075, 4294967295]`.
+- **Measured kernel error:** maximum sampled continuous error `0.41500238 ulp`; maximum exact-evaluator error `1 ulp` over 1,000,001 uniformly spaced raw inputs plus extrema neighborhoods.
+- **Intermediate range:** largest observed signed numerator width `66 bits`; no evaluator overflow was observed.
+- **Selection note:** a five-term kernel cannot cover a self-contained `pi/4` reflection split with the sampled target. At the minimum symmetric boundary `pi/8`, its direct kernel reached `4 ulp`, so six terms are retained as the minimum sampled candidate for this plan.
+
+### Cotangent residual kernel candidate: Q32.32, four terms
+
+- **Core interval:** `d in [0, 0.46]`.
+- **Structure:** odd factorization `C(d) = d * q_c(d^2)`.
+- **Basis:** `d^1, d^3, d^5, d^7`.
+- **Fit target:** `(cot(sqrt(z)) - 1/sqrt(z)) / sqrt(z)`, with value `-1/3` at `z = 0` by continuity.
+- **Policy:** signed Q32.32 coefficients with round-to-nearest, ties-to-even stage-by-stage evaluation.
+- **Raw coefficients by ascending power:** `d^1 = -1431655764`, `d^3 = -95443945`, `d^5 = -9084519`, `d^7 = -949077`.
+- **Raw Horner order for `q_c(d^2)`:** `[-949077, -9084519, -95443945, -1431655764]`.
+- **Measured kernel error:** maximum sampled continuous error `0.673196427674 ulp`; maximum exact-evaluator error `1 ulp` over 1,000,001 uniformly spaced raw inputs plus extrema neighborhoods.
+- **Intermediate range:** largest observed signed numerator width `64 bits`; no evaluator overflow was observed.
+- **Minimum-term check:** the tested three-term basis through `d^5` reached `125 ulp`, so four terms are the minimum sampled candidate among the tested sizes.
+
+### Accuracy boundary
+
+The recorded `1 ulp` figures apply only to `T(u)` and `C(d)` as standalone fixed-point kernels. No stronger claim is currently made for:
+
+- either `pi/4` rational reflection formula;
+- `1/d + C(d)` after separately rounded reciprocal and addition;
+- inputs whose mathematical tangent is outside the finite Q32.32 range;
+- `pi/2` argument reduction performed without an additional tail;
+- periodic whole-domain reduction; or
+- policies and rounding modes other than the recorded Q32.32 RoundToEven evaluator.
+
+All figures in this entry are sampled numerical evidence, not exhaustive or interval-certified proofs.

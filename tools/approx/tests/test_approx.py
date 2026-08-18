@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT))
 
 from fixmath_approx.fixed_eval import div_pow2, evaluate_factored
 from fixmath_approx.remez import run
-from fixmath_approx.specification import load_spec
+from fixmath_approx.specification import FUNCTIONS, load_spec
 
 import mpmath as mp
 
@@ -26,6 +26,17 @@ class FixedEvaluatorTests(unittest.TestCase):
 		self.assertEqual(result.raw, 1 << 31)
 		self.assertFalse(result.overflow)
 		self.assertEqual(evaluate_factored(0, [123, -456, 789], 64, 32, "RoundToEven").raw, 0)
+
+	def test_tan_factored_target_is_regular_at_zero(self):
+		self.assertEqual(FUNCTIONS["tan_over_x_squared"](mp.mpf(0)), 1)
+		x = mp.mpf("0.5")
+		self.assertEqual(FUNCTIONS["tan_over_x_squared"](x * x), mp.tan(x) / x)
+
+	def test_cot_residual_factored_target_is_regular_at_zero(self):
+		self.assertEqual(FUNCTIONS["cot_residual"](mp.mpf(0)), 0)
+		self.assertEqual(FUNCTIONS["cot_residual_over_x_squared"](mp.mpf(0)), -mp.mpf(1) / 3)
+		x = mp.mpf("0.5")
+		self.assertEqual(FUNCTIONS["cot_residual_over_x_squared"](x * x), (mp.cot(x) - 1 / x) / x)
 
 	def test_example_spec_is_explicit_and_valid(self):
 		raw_spec = {

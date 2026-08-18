@@ -17,9 +17,33 @@ def _sin_over_x_squared(z: mp.mpf) -> mp.mpf:
 	return mp.sin(x) / x
 
 
+def _tan_over_x_squared(z: mp.mpf) -> mp.mpf:
+	if z == 0:
+		return mp.mpf(1)
+	x = mp.sqrt(z)
+	return mp.tan(x) / x
+
+
+def _cot_residual(x: mp.mpf) -> mp.mpf:
+	if x == 0:
+		return mp.mpf(0)
+	return mp.cot(x) - 1 / x
+
+
+def _cot_residual_over_x_squared(z: mp.mpf) -> mp.mpf:
+	if z == 0:
+		return -mp.mpf(1) / 3
+	x = mp.sqrt(z)
+	return _cot_residual(x) / x
+
+
 FUNCTIONS: dict[str, Callable[[mp.mpf], mp.mpf]] = {
+	"cot_residual": _cot_residual,
+	"cot_residual_over_x_squared": _cot_residual_over_x_squared,
 	"sin": mp.sin,
 	"sin_over_x_squared": _sin_over_x_squared,
+	"tan": mp.tan,
+	"tan_over_x_squared": _tan_over_x_squared,
 }
 
 
