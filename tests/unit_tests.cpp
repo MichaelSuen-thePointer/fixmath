@@ -17,6 +17,7 @@ const double pi = std::acos(-1);
 namespace {
 
 using Fix32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
+using Fix32Zero = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToZero>>;
 using Fix32Ignore = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::Ignore, fixmath::rounding_mode::RoundToEven>>;
 using Fix32Strict = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 32, fixmath::arithmetic_mode::StrictMode, fixmath::rounding_mode::RoundToEven>>;
 using Fix8Even32 = fixmath::fixed<fixmath::fixed_policy<fixmath::int32_t, 8, fixmath::arithmetic_mode::SaturationMode, fixmath::rounding_mode::RoundToEven>>;
@@ -77,6 +78,35 @@ concept HasHalfPi = requires { T::half_pi(); };
 
 template <class T>
 concept HasQuarterPi = requires { T::quarter_pi(); };
+
+template <class T>
+concept HasSin = requires(T value) { fixmath::sin(value); };
+
+template <class T>
+concept HasCos = requires(T value) { fixmath::cos(value); };
+
+template <class Fix, std::size_t N>
+void check_fast64_horner(const typename Fix::raw_t (&coefficients)[N]) {
+	using policy = typename Fix::policy;
+	using raw_t = typename Fix::raw_t;
+	const raw_t max_input = (Fix::quarter_pi() * Fix::quarter_pi()).raw();
+	const raw_t inputs[] = {0, 1, max_input / 4, max_input / 2, max_input * 3 / 4, max_input - 1, max_input};
+	for (const raw_t input : inputs) {
+		EXPECT_EQ(_fm_horner_fast64<policy>(input, &coefficients), _fm_horner_generic<policy>(input, &coefficients));
+	}
+}
+
+template <class Fix>
+void check_fast128_horner() {
+	using policy = typename Fix::policy;
+	using raw_t = typename Fix::raw_t;
+	const raw_t scale = static_cast<raw_t>(Fix::URATIO);
+	const raw_t coefficients[] = {scale, 0, 0};
+	const raw_t inputs[] = {scale, scale + 1, -scale, -scale - 1, scale + scale / 2};
+	for (const raw_t input : inputs) {
+		EXPECT_EQ(_fm_horner_fast128<policy>(input, &coefficients), _fm_horner_generic<policy>(input, &coefficients));
+	}
+}
 
 template <class Fix>
 void check_max_fraction_bits() {
@@ -385,6 +415,93 @@ TEST(FIXMATH, CONSTANT) {
 	EXPECT_EQ(Fix32::min_sat(), -Fix32::max_sat() - Fix32::epsilon());
 	EXPECT_EQ(Fix32::min_sat(), Fix32::min_fix());
 	EXPECT_EQ(Fix32::max_sat(), Fix32::max_fix());
+}
+
+TEST(FIXMATH, SIN_Q32_32) {
+	static_assert(HasSin<Fix32>);
+	static_assert(HasSin<Fix32Strict>);
+	static_assert(!HasSin<Fix16Even64>);
+	const auto expect_sin_near = [](Fix32 input) {
+		const Fix32 expected(std::sin(static_cast<double>(input)));
+		const Fix32 actual = fixmath::sin(input);
+		const auto error = actual.raw() - expected.raw();
+		EXPECT_LE(std::abs(error), 1);
+	};
+
+	EXPECT_EQ(fixmath::sin(Fix32(0)).raw(), 0);
+	expect_sin_near(Fix32(0.1));
+	expect_sin_near(Fix32(0.5));
+	expect_sin_near(Fix32::quarter_pi());
+	expect_sin_near(Fix32(1.0));
+	expect_sin_near(Fix32::half_pi());
+
+	const Fix32 half(0.5);
+	EXPECT_EQ(fixmath::sin(Fix32::half_pi()), Fix32(1));
+	EXPECT_EQ(fixmath::sin(Fix32::pi()), Fix32(0));
+	EXPECT_EQ(fixmath::sin(Fix32::pi() + Fix32::half_pi()), Fix32(-1));
+	EXPECT_EQ(fixmath::sin(-half), -fixmath::sin(half));
+	EXPECT_EQ(fixmath::sin(Fix32::pi() - half), fixmath::sin(half));
+	EXPECT_EQ(fixmath::sin(Fix32::pi() + half), -fixmath::sin(half));
+	EXPECT_EQ(fixmath::sin(Fix32::two_pi() - half), -fixmath::sin(half));
+	EXPECT_EQ(fixmath::sin(Fix32::two_pi() + half), fixmath::sin(half));
+}
+
+TEST(FIXMATH, COS_Q32_32) {
+	static_assert(HasCos<Fix32>);
+	static_assert(HasCos<Fix32Strict>);
+	static_assert(!HasCos<Fix16Even64>);
+	const auto expect_cos_near = [](Fix32 input) {
+		const Fix32 expected(std::cos(static_cast<double>(input)));
+		const Fix32 actual = fixmath::cos(input);
+		const auto error = actual.raw() - expected.raw();
+		EXPECT_LE(std::abs(error), 1);
+	};
+
+	EXPECT_EQ(fixmath::cos(Fix32(0)), Fix32(1));
+	expect_cos_near(Fix32(0.1));
+	expect_cos_near(Fix32(0.5));
+	expect_cos_near(Fix32::quarter_pi());
+	expect_cos_near(Fix32(1.0));
+	expect_cos_near(Fix32::half_pi());
+
+	const Fix32 half(0.5);
+	EXPECT_EQ(fixmath::cos(Fix32::half_pi()), Fix32(0));
+	EXPECT_EQ(fixmath::cos(Fix32::pi()), Fix32(-1));
+	EXPECT_EQ(fixmath::cos(Fix32::two_pi()), Fix32(1));
+	EXPECT_EQ(fixmath::cos(-half), fixmath::cos(half));
+	EXPECT_EQ(fixmath::cos(Fix32::pi() - half), -fixmath::cos(half));
+	EXPECT_EQ(fixmath::cos(Fix32::pi() + half), -fixmath::cos(half));
+	EXPECT_EQ(fixmath::cos(Fix32::two_pi() - half), fixmath::cos(half));
+	EXPECT_EQ(fixmath::cos(Fix32::two_pi() + half), fixmath::cos(half));
+}
+
+TEST(FIXMATH, HORNER_Q32_FAST64) {
+	const Fix32::raw_t sin_coefficients[] = {11654LL, -852064LL, 35791363LL, -715827879LL, 4294967296LL};
+	const Fix32::raw_t cos_coefficients[] = {104756LL, -5964319LL, 178956784LL, -2147483636LL, 4294967296LL};
+	check_fast64_horner<Fix32>(sin_coefficients);
+	check_fast64_horner<Fix32>(cos_coefficients);
+	check_fast64_horner<Fix32Zero>(sin_coefficients);
+	check_fast64_horner<Fix32Zero>(cos_coefficients);
+}
+
+TEST(FIXMATH, HORNER_Q32_FAST128) {
+	static_assert(Fix32::URATIO > static_cast<Fix32::uraw_t>(std::numeric_limits<Fix32::raw_t>::max()) / Fix32::URATIO);
+	check_fast128_horner<Fix32>();
+	check_fast128_horner<Fix32Zero>();
+	check_fast128_horner<Fix32Strict>();
+	check_fast128_horner<Fix32Ignore>();
+}
+
+TEST(FIXMATH, SIN_Q32_32_STRICT_SPECIAL_VALUES) {
+	EXPECT_TRUE(fixmath::sin(Fix32Strict::nan()).is_nan());
+	EXPECT_TRUE(fixmath::sin(Fix32Strict::inf()).is_nan());
+	EXPECT_TRUE(fixmath::sin(-Fix32Strict::inf()).is_nan());
+}
+
+TEST(FIXMATH, COS_Q32_32_STRICT_SPECIAL_VALUES) {
+	EXPECT_TRUE(fixmath::cos(Fix32Strict::nan()).is_nan());
+	EXPECT_TRUE(fixmath::cos(Fix32Strict::inf()).is_nan());
+	EXPECT_TRUE(fixmath::cos(-Fix32Strict::inf()).is_nan());
 }
 
 TEST(FIXMATH, STRICT_CLASSIFICATION) {

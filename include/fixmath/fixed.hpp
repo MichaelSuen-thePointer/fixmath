@@ -5,6 +5,7 @@
 #pragma once
 
 #include <bit>          // for std::bit_cast
+#include <cstddef>      // for std::size_t
 #include <cstdint>      // for int64_t ...
 #include <string>       // for std::string
 #include <limits>       // for std::numeric_limits
