@@ -85,6 +85,9 @@ concept HasSin = requires(T value) { fixmath::sin(value); };
 template <class T>
 concept HasCos = requires(T value) { fixmath::cos(value); };
 
+template <class T>
+concept HasTan = requires(T value) { fixmath::tan(value); };
+
 template <class Fix, std::size_t N>
 void check_fast64_horner(const typename Fix::raw_t (&coefficients)[N]) {
 	using policy = typename Fix::policy;
@@ -491,6 +494,63 @@ TEST(FIXMATH, COS_Q32_32) {
 	EXPECT_EQ(fixmath::cos(Fix32::two_pi() + half), fixmath::cos(half));
 }
 
+TEST(FIXMATH, TAN_Q32_32) {
+	static_assert(HasTan<Fix32>);
+	static_assert(HasTan<Fix32Zero>);
+	static_assert(HasTan<Fix32Ignore>);
+	static_assert(HasTan<Fix32Strict>);
+	static_assert(!HasTan<Fix16Even64>);
+	const auto expect_tan_near = [](Fix32 input, Fix32::raw_t max_error) {
+		const Fix32 expected(std::tan(static_cast<double>(input)));
+		const Fix32 actual = fixmath::tan(input);
+		const auto error = actual.raw() - expected.raw();
+		EXPECT_LE(std::abs(error), max_error);
+	};
+
+	EXPECT_EQ(fixmath::tan(Fix32(0)).raw(), 0);
+	expect_tan_near(Fix32(0.1), 1);
+	expect_tan_near(Fix32(0.46), 2);
+	expect_tan_near(Fix32(0.5), 2);
+	EXPECT_EQ(fixmath::tan(Fix32::quarter_pi()), Fix32(1));
+	expect_tan_near(Fix32(1.0), 4);
+	expect_tan_near(Fix32(1.2), 8);
+
+	const Fix32 half(0.5);
+	EXPECT_EQ(fixmath::tan(-half), -fixmath::tan(half));
+	EXPECT_EQ(fixmath::tan(Fix32::pi() - half), -fixmath::tan(half));
+	EXPECT_EQ(fixmath::tan(Fix32::pi() + half), fixmath::tan(half));
+	EXPECT_LE(std::abs(fixmath::tan(Fix32::two_pi() - half).raw() + fixmath::tan(half).raw()), 2);
+	EXPECT_LE(std::abs(fixmath::tan(Fix32::two_pi() + half).raw() - fixmath::tan(half).raw()), 2);
+	EXPECT_EQ(fixmath::tan(Fix32::half_pi()), Fix32::max_sat());
+	EXPECT_EQ(fixmath::tan(-Fix32::half_pi()), Fix32::min_sat());
+	EXPECT_EQ(fixmath::tan(Fix32::from_raw(Fix32::half_pi().raw() - 1)), Fix32::max_sat());
+	EXPECT_EQ(fixmath::tan(Fix32::from_raw(-Fix32::half_pi().raw() + 1)), Fix32::min_sat());
+	EXPECT_EQ(fixmath::tan(Fix32Ignore::half_pi()), Fix32Ignore::nan());
+}
+
+TEST(FIXMATH, TAN_KERNELS_Q32_32) {
+	const auto expect_tan_kernel_near = [](Fix32 input) {
+		const Fix32 expected(std::tan(static_cast<double>(input)));
+		const Fix32 actual = Fix32::from_raw(_fm_tan_kernel<Fix32::policy>(input.raw(), false));
+		EXPECT_LE(std::abs(actual.raw() - expected.raw()), 1);
+	};
+	const auto expect_cot_residual_kernel_near = [](Fix32 input) {
+		const double value = static_cast<double>(input);
+		const Fix32 expected(1.0 / std::tan(value) - 1.0 / value);
+		const Fix32 actual = Fix32::from_raw(_fm_cot_residual_kernel<Fix32::policy>(input.raw()));
+		EXPECT_LE(std::abs(actual.raw() - expected.raw()), 1);
+	};
+
+	EXPECT_EQ(_fm_tan_kernel<Fix32::policy>(0, false), 0);
+	expect_tan_kernel_near(Fix32(0.1));
+	expect_tan_kernel_near(Fix32(0.3));
+	expect_tan_kernel_near(Fix32(0.46));
+	EXPECT_EQ(_fm_cot_residual_kernel<Fix32::policy>(0), 0);
+	expect_cot_residual_kernel_near(Fix32(0.1));
+	expect_cot_residual_kernel_near(Fix32(0.3));
+	expect_cot_residual_kernel_near(Fix32(0.46));
+}
+
 TEST(FIXMATH, HORNER_Q32_FAST64) {
 	const Fix32::raw_t sin_coefficients[] = {11654LL, -852064LL, 35791363LL, -715827879LL, 4294967296LL};
 	const Fix32::raw_t cos_coefficients[] = {104756LL, -5964319LL, 178956784LL, -2147483636LL, 4294967296LL};
@@ -526,6 +586,16 @@ TEST(FIXMATH, COS_Q32_32_STRICT_SPECIAL_VALUES) {
 	EXPECT_TRUE(fixmath::cos(Fix32Strict::nan()).is_nan());
 	EXPECT_TRUE(fixmath::cos(Fix32Strict::inf()).is_nan());
 	EXPECT_TRUE(fixmath::cos(-Fix32Strict::inf()).is_nan());
+}
+
+TEST(FIXMATH, TAN_Q32_32_STRICT_SPECIAL_VALUES) {
+	EXPECT_TRUE(fixmath::tan(Fix32Strict::nan()).is_nan());
+	EXPECT_TRUE(fixmath::tan(Fix32Strict::inf()).is_nan());
+	EXPECT_TRUE(fixmath::tan(-Fix32Strict::inf()).is_nan());
+	EXPECT_EQ(fixmath::tan(Fix32Strict::half_pi()), Fix32Strict::inf());
+	EXPECT_EQ(fixmath::tan(-Fix32Strict::half_pi()), -Fix32Strict::inf());
+	EXPECT_EQ(fixmath::tan(Fix32Strict::from_raw(Fix32Strict::half_pi().raw() - 1)), Fix32Strict::inf());
+	EXPECT_EQ(fixmath::tan(Fix32Strict::from_raw(-Fix32Strict::half_pi().raw() + 1)), -Fix32Strict::inf());
 }
 
 TEST(FIXMATH, STRICT_CLASSIFICATION) {
