@@ -25,7 +25,11 @@ enum class rounding_mode {
 	RoundToEven,
 };
 
-template <class underlying_type, underlying_type fraction, arithmetic_mode arith_mode, rounding_mode rounding_mode>
+template <class T>
+concept FixedUnderlying = ::std::signed_integral<T> && (sizeof(T) <= sizeof(int64_t));
+
+template <FixedUnderlying underlying_type, underlying_type fraction, arithmetic_mode arith_mode, rounding_mode rounding_mode>
+	requires(0 < fraction && fraction < static_cast<underlying_type>(sizeof(underlying_type) * CHAR_BIT))
 struct fixed_policy {
 	using raw_t = underlying_type;
 	const static raw_t fraction_bits = fraction;
@@ -33,16 +37,13 @@ struct fixed_policy {
 	const static bool strict_mode = arith_mode == arithmetic_mode::StrictMode;
 	const static bool saturation_mode = arith_mode == arithmetic_mode::SaturationMode;
 	const static bool rounding = rounding_mode == rounding_mode::RoundToEven;
-
-	static_assert(::std::is_signed_v<raw_t>, "underlying_type should be signed");
-	static_assert(sizeof(raw_t) <= sizeof(int64_t), "underlying_type should not exceed 64 bits");
-	static_assert(0 < fraction_bits && fraction_bits < sizeof(raw_t) * CHAR_BIT, "fraction bits should between [1, BITS - 1]");
 };
 
 template <class T>
 struct is_fixed_policy : ::std::false_type {};
 
-template <class underlying_type, underlying_type fraction, arithmetic_mode arith_mode, rounding_mode rounding_mode>
+template <FixedUnderlying underlying_type, underlying_type fraction, arithmetic_mode arith_mode, rounding_mode rounding_mode>
+	requires(0 < fraction && fraction < static_cast<underlying_type>(sizeof(underlying_type) * CHAR_BIT))
 struct is_fixed_policy<fixed_policy<underlying_type, fraction, arith_mode, rounding_mode>> : ::std::true_type {};
 
 template <class T>

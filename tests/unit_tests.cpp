@@ -30,6 +30,18 @@ using Fix48Even64 = fixmath::fixed<fixmath::fixed_policy<fixmath::int64_t, 48, f
 template <class Raw, Raw FractionBits, arithmetic_mode ArithmeticMode, rounding_mode RoundingMode>
 using TestFix = fixed<fixed_policy<Raw, FractionBits, ArithmeticMode, RoundingMode>>;
 
+template <class Raw, Raw FractionBits>
+concept HasFixedPolicy = requires { typename fixed_policy<Raw, FractionBits, arithmetic_mode::Ignore, rounding_mode::RoundToZero>; };
+
+static_assert(FixedUnderlying<std::int8_t>);
+static_assert(!FixedUnderlying<std::uint8_t>);
+static_assert(HasFixedPolicy<std::int8_t, 1>);
+static_assert(HasFixedPolicy<std::int8_t, 7>);
+static_assert(!HasFixedPolicy<std::int8_t, -1>);
+static_assert(!HasFixedPolicy<std::int8_t, 0>);
+static_assert(!HasFixedPolicy<std::int8_t, 8>);
+static_assert(!HasFixedPolicy<std::uint8_t, 1>);
+
 using Fix3Even8Ignore = TestFix<std::int8_t, 3, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
 using Fix4Even8Ignore = TestFix<std::int8_t, 4, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;
 using Fix5Even8Ignore = TestFix<std::int8_t, 5, arithmetic_mode::Ignore, rounding_mode::RoundToEven>;

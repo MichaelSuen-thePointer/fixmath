@@ -14,6 +14,7 @@
 #include <system_error> // for std::errc
 #include <algorithm>    // for std::max
 #include <compare>      // for std::strong_ordering
+#include <concepts>     // for std::same_as, std::signed_integral
 #include <climits>      // for CHAR_BIT
 #include "fixmath_config.hpp"
 #include "fixmath_traits.inl"
