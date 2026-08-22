@@ -316,6 +316,16 @@ fixed<policy> tan(fixed<policy> a) {
 }
 
 template <FixedPolicy policy>
+	requires(fixed<policy>::FRACTION_BITS == 32)
+fixed<policy> cot(fixed<policy> a) {
+	using fixed = fixed<policy>;
+	if (a.raw() < 0) {
+		return tan(-fixed::half_pi() - a);
+	}
+	return tan(fixed::half_pi() - a);
+}
+
+template <FixedPolicy policy>
 constexpr fixed<policy> sqrt(fixed<policy> a) {
 	using fixed = fixed<policy>;
 	using raw_t = typename fixed::raw_t;

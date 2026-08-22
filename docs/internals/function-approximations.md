@@ -122,3 +122,14 @@ The recorded `1 ulp` figures apply only to `T(u)` and `C(d)` as standalone fixed
 - policies and rounding modes other than the recorded Q32.32 RoundToEven evaluator.
 
 All figures in this entry are sampled numerical evidence, not exhaustive or interval-certified proofs.
+
+## `cot`
+
+The Q32.32 `cot` implementation reuses `tan` through the phase-shift identity. It selects an equivalent shift according to the input sign so constructing the forwarded argument cannot overflow at either end of the signed Q32.32 range:
+
+```text
+cot(a) = tan(pi/2 - a)   when a >= 0
+cot(a) = tan(-pi/2 - a)  when a < 0
+```
+
+No additional polynomial is evaluated beyond the kernels already used by `tan`. Consequently, `cot` inherits the same weak accuracy boundary: the standalone tangent and cotangent-residual kernels retain their sampled `1 ulp` results, but the phase shift, range reduction, reflection, reciprocal, and combined result do not gain a whole-function `1 ulp` guarantee. At zero, the forwarded tangent pole follows the selected arithmetic policy; at `pi/2`, the result is exactly zero.

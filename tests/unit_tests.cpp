@@ -102,6 +102,9 @@ concept HasCos = requires(T value) { fixmath::cos(value); };
 template <class T>
 concept HasTan = requires(T value) { fixmath::tan(value); };
 
+template <class T>
+concept HasCot = requires(T value) { fixmath::cot(value); };
+
 template <class Fix, std::size_t N>
 void check_fast64_horner(const typename Fix::raw_t (&coefficients)[N]) {
 	using policy = typename Fix::policy;
@@ -610,6 +613,42 @@ TEST(FIXMATH, TAN_Q32_32) {
 	EXPECT_EQ(fixmath::tan(Fix32Ignore::half_pi()), Fix32Ignore::nan());
 }
 
+TEST(FIXMATH, COT_Q32_32) {
+	static_assert(HasCot<Fix32>);
+	static_assert(HasCot<Fix32Zero>);
+	static_assert(HasCot<Fix32Ignore>);
+	static_assert(HasCot<Fix32Strict>);
+	static_assert(!HasCot<Fix16Even64>);
+	const auto expect_cot_near = [](Fix32 input, Fix32::raw_t max_error) {
+		SCOPED_TRACE(input.raw());
+		const double value = static_cast<double>(input);
+		const Fix32 expected(1.0 / std::tan(value));
+		const Fix32 actual = fixmath::cot(input);
+		const auto error = actual.raw() - expected.raw();
+		EXPECT_LE(std::abs(error), max_error);
+	};
+
+	EXPECT_EQ(fixmath::cot(Fix32(0)), Fix32::max_sat());
+	expect_cot_near(Fix32(0.1), 1);
+	expect_cot_near(Fix32(0.46), 1);
+	expect_cot_near(Fix32(0.5), 1);
+	EXPECT_EQ(fixmath::cot(Fix32::quarter_pi()), Fix32(1));
+	expect_cot_near(Fix32(1.0), 1);
+	expect_cot_near(Fix32(1.2), 1);
+	EXPECT_EQ(fixmath::cot(Fix32::half_pi()), Fix32(0));
+
+	const Fix32 half(0.5);
+	EXPECT_EQ(fixmath::cot(-half), -fixmath::cot(half));
+	EXPECT_LE(std::abs(fixmath::cot(Fix32::pi() - half).raw() + fixmath::cot(half).raw()), 2);
+	EXPECT_LE(std::abs(fixmath::cot(Fix32::pi() + half).raw() - fixmath::cot(half).raw()), 2);
+	EXPECT_EQ(fixmath::cot(Fix32::from_raw(i64{-1})), Fix32::min_sat());
+	EXPECT_LE(std::abs(fixmath::cot(Fix32::from_raw(i64{2})).raw() - Fix32::max_sat().raw()), 1);
+	EXPECT_LE(std::abs(fixmath::cot(Fix32::from_raw(i64{-2})).raw() + Fix32::max_sat().raw()), 1);
+	EXPECT_EQ(fixmath::cot(Fix32::from_raw(i64{3})).raw(), i64{6148914691236517204});
+	EXPECT_EQ(fixmath::cot(Fix32::from_raw(i64{-3})).raw(), i64{-6148914691236517204});
+	EXPECT_EQ(fixmath::cot(Fix32Ignore(0)), Fix32Ignore::nan());
+}
+
 TEST(FIXMATH, TRIG_Q32_32_LARGE_RANGE_REDUCTION) {
 	// These inputs reduce to exactly 0.5 and 1.5 Q32.32 raw units.
 	constexpr i64 TIE_INPUT = 0x6487'ed51'10b4'611b;
@@ -621,11 +660,13 @@ TEST(FIXMATH, TRIG_Q32_32_LARGE_RANGE_REDUCTION) {
 	EXPECT_LE(std::abs(fixmath::sin(maximum).raw() - i64{-4171745440}), 2);
 	EXPECT_LE(std::abs(fixmath::cos(maximum).raw() - i64{1021412777}), 2);
 	EXPECT_LE(std::abs(fixmath::tan(maximum).raw() - i64{-17541889656}), 32);
+	EXPECT_EQ(fixmath::cot(maximum).raw(), i64{-1051582494});
 
 	const Fix32 minimum = Fix32::from_raw(i64l::min());
 	EXPECT_LE(std::abs(fixmath::sin(minimum).raw() - i64{4171745439}), 2);
 	EXPECT_LE(std::abs(fixmath::cos(minimum).raw() - i64{1021412778}), 2);
 	EXPECT_LE(std::abs(fixmath::tan(minimum).raw() - i64{17541889638}), 32);
+	EXPECT_EQ(fixmath::cot(minimum).raw(), i64{1051582495});
 }
 
 TEST(FIXMATH, TAN_KERNELS_Q32_32) {
@@ -696,6 +737,15 @@ TEST(FIXMATH, TAN_Q32_32_STRICT_SPECIAL_VALUES) {
 	EXPECT_EQ(fixmath::tan(-Fix32Strict::half_pi()), -Fix32Strict::inf());
 	EXPECT_EQ(fixmath::tan(Fix32Strict::from_raw(Fix32Strict::half_pi().raw() - 1)), Fix32Strict::inf());
 	EXPECT_EQ(fixmath::tan(Fix32Strict::from_raw(-Fix32Strict::half_pi().raw() + 1)), -Fix32Strict::inf());
+}
+
+TEST(FIXMATH, COT_Q32_32_STRICT_SPECIAL_VALUES) {
+	EXPECT_TRUE(fixmath::cot(Fix32Strict::nan()).is_nan());
+	EXPECT_TRUE(fixmath::cot(Fix32Strict::inf()).is_nan());
+	EXPECT_TRUE(fixmath::cot(-Fix32Strict::inf()).is_nan());
+	EXPECT_EQ(fixmath::cot(Fix32Strict(0)), Fix32Strict::inf());
+	EXPECT_EQ(fixmath::cot(Fix32Strict::from_raw(i64{-1})), -Fix32Strict::inf());
+	EXPECT_EQ(fixmath::cot(Fix32Strict::half_pi()), Fix32Strict(0));
 }
 
 TEST(FIXMATH, STRICT_CLASSIFICATION) {
