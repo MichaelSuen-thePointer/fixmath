@@ -7,7 +7,7 @@
 
 namespace fixmath {
 
-inline uint64_t _softumul128(uint64_t a, uint64_t b, uint64_t& uhi) {
+inline uint64_t _fm_softumul128(uint64_t a, uint64_t b, uint64_t& uhi) {
 	uint64_t ahi = a >> 32;
 	uint64_t alo = a & 0xFFFF'FFFF;
 	uint64_t bhi = b >> 32;
@@ -29,7 +29,7 @@ inline uint64_t _softumul128(uint64_t a, uint64_t b, uint64_t& uhi) {
 	return ulo;
 }
 
-inline int64_t _softmul128(int64_t a, int64_t b, int64_t& rhi) {
+inline int64_t _fm_softmul128(int64_t a, int64_t b, int64_t& rhi) {
 	uint64_t va = static_cast<uint64_t>(a);
 	uint64_t vb = static_cast<uint64_t>(b);
 	if (a < 0) {
@@ -39,7 +39,7 @@ inline int64_t _softmul128(int64_t a, int64_t b, int64_t& rhi) {
 		vb = 0 - vb;
 	}
 	uint64_t uhi = 0;
-	uint64_t ulo = _softumul128(va, vb, uhi);
+	uint64_t ulo = _fm_softumul128(va, vb, uhi);
 	if ((a ^ b) < 0) {
 		_fm_neg128(uhi, ulo);
 	}

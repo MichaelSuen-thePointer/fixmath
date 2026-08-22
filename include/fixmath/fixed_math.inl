@@ -7,6 +7,46 @@
 
 namespace fixmath {
 
+struct _fm_pio4_remainder {
+	uint64_t remainder;
+	uint64_t quotient;
+};
+
+// Divide a nonnegative fixed-point raw magnitude by pi/4. The remainder
+// retains one fractional bit per underlying bit; quotient preserves the
+// octant information needed by trigonometric range reduction.
+template <::std::size_t INPUT_FRACTION_BITS, class uraw_t>
+inline _fm_pio4_remainder _fm_rem_pio4(uraw_t magnitude) {
+	static_assert(::std::is_integral_v<uraw_t> && ::std::is_unsigned_v<uraw_t>, "uraw_t must be an unsigned integer");
+	static_assert(sizeof(uraw_t) == sizeof(uint32_t) || sizeof(uraw_t) == sizeof(uint64_t), "uraw_t must be 32 or 64 bits");
+	static_assert(INPUT_FRACTION_BITS < sizeof(uraw_t) * CHAR_BIT, "input fraction bits out of range");
+	constexpr ::std::size_t PERIOD_FRACTION_BITS = sizeof(uraw_t) * CHAR_BIT;
+	constexpr ::std::size_t SCALE_SHIFT = PERIOD_FRACTION_BITS - INPUT_FRACTION_BITS;
+	constexpr uint64_t PIO4 = sizeof(uraw_t) == sizeof(uint64_t) ? 0xc90f'daa2'2168'c235ULL : 0xc90f'daa2ULL;
+
+	const uint64_t magnitude64 = static_cast<uint64_t>(magnitude);
+	uint64_t scaled_hi = 0;
+	uint64_t scaled_lo = 0;
+	if constexpr (SCALE_SHIFT == 0) {
+		scaled_lo = magnitude64;
+	} else if constexpr (SCALE_SHIFT < 64) {
+		scaled_lo = magnitude64 << SCALE_SHIFT;
+		scaled_hi = magnitude64 >> (64 - SCALE_SHIFT);
+	} else {
+		scaled_hi = magnitude64 << (SCALE_SHIFT - 64);
+	}
+
+	uint64_t remainder = 0;
+	uint64_t quotient = 0;
+	if (scaled_hi == 0) {
+		quotient = scaled_lo / PIO4;
+		remainder = scaled_lo % PIO4;
+	} else {
+		quotient = _fm_udiv128(scaled_hi, scaled_lo, PIO4, remainder);
+	}
+	return {remainder, quotient};
+}
+
 template <FixedPolicy policy, ::std::size_t N>
 typename fixed<policy>::raw_t _fm_horner_generic(typename fixed<policy>::raw_t x, const typename fixed<policy>::raw_t (*coefficients)[N]) {
 	using fixed = fixed<policy>;

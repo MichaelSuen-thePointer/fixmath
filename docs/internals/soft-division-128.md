@@ -15,10 +15,10 @@ _fm_div128       signed 128-by-64 wrapper
     |
     +-- divq     Linux x64 low-limb backend
     +-- _udiv128 optional MSVC x64 backend
-    `-- _softudiv128 portable unsigned backend
+    `-- _fm_softudiv128 portable unsigned backend
 ```
 
-`_fm_div128` handles signs and a quotient wider than 64 bits. `_softudiv128` computes only the low 64 quotient bits after its caller has reduced the upper dividend limb below the divisor.
+`_fm_div128` handles signs and a quotient wider than 64 bits. `_fm_softudiv128` computes only the low 64 quotient bits after its caller has reduced the upper dividend limb below the divisor.
 
 These functions implement integer division truncated toward zero. They do not apply the Fixmath rounding policy. The fixed-point caller uses the returned remainder later to implement `RoundToEven`, or ignores it for `RoundToZero`.
 
@@ -49,7 +49,7 @@ Q = trunc(D / V)
 The unsigned core receives
 
 ```cpp
-_softudiv128(uint64_t u1, uint64_t u0, uint64_t v, uint64_t* r)
+_fm_softudiv128(uint64_t u1, uint64_t u0, uint64_t v, uint64_t* r)
 ```
 
 and computes
@@ -123,7 +123,7 @@ Current dispatch is:
 
 - Linux x64 uses the hardware `divq` instruction through inline assembly.
 - MSVC x64 may use `_udiv128` when `FIXMATH_HAS_INTRIN_DIV` is enabled by the build.
-- All other configurations use `_softudiv128`.
+- All other configurations use `_fm_softudiv128`.
 
 The dispatch changes performance only. All backends share the same unsigned quotient-and-remainder contract.
 
@@ -133,7 +133,7 @@ If dividend and divisor signs differ, `_fm_neg128` negates the complete quotient
 
 The fixed-point caller later checks whether `qhi` is the sign extension of `qlo`. If not, the quotient does not fit in the target 64-bit raw representation and the selected arithmetic policy handles the overflow.
 
-## Unsigned core: `_softudiv128`
+## Unsigned core: `_fm_softudiv128`
 
 The portable core is a specialized base-`2^32` long division. It uses only 64-bit unsigned arithmetic, count-leading-zeros, shifts, multiplication, division, and remainder. Because the quotient is known to fit in 64 bits, it consists of exactly two base-`2^32` digits:
 
@@ -272,4 +272,4 @@ Tests for this layer should cover:
 - equivalence among hardware, intrinsic, and software backends where available;
 - the invariant `D == Q * V + R` and `abs(R) < abs(V)` using an independent wide-integer oracle.
 
-Division by zero is tested at the fixed-point operator boundary, not as a valid input to `_softudiv128`.
+Division by zero is tested at the fixed-point operator boundary, not as a valid input to `_fm_softudiv128`.

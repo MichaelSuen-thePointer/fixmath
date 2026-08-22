@@ -54,9 +54,11 @@ using Fix62Even64Sat = TestFix<fixmath::int64_t, 62, arithmetic_mode::Saturation
 
 using i32 = fixmath::int32_t;
 using i64 = fixmath::int64_t;
+using u32 = fixmath::uint32_t;
 using u64 = fixmath::uint64_t;
 using i32l = std::numeric_limits<i32>;
 using i64l = std::numeric_limits<i64>;
+using u64l = std::numeric_limits<u64>;
 using f32l = std::numeric_limits<float>;
 using f64l = std::numeric_limits<double>;
 
@@ -216,7 +218,7 @@ TEST(FIXMATH, INT128MUL) {
 		i64 ahi;
 		i64 alo = fixmath::_fm_mul128(a, b, ahi);
 		i64 bhi;
-		i64 blo = fixmath::_softmul128(a, b, bhi);
+		i64 blo = fixmath::_fm_softmul128(a, b, bhi);
 		EXPECT_EQ(ahi, bhi);
 		EXPECT_EQ(alo, blo);
 	}
@@ -226,7 +228,7 @@ TEST(FIXMATH, INT128MUL) {
 		i64 ahi;
 		i64 alo = fixmath::_fm_mul128(a, b, ahi);
 		i64 bhi;
-		i64 blo = fixmath::_softmul128(a, b, bhi);
+		i64 blo = fixmath::_fm_softmul128(a, b, bhi);
 		EXPECT_EQ(ahi, bhi);
 		EXPECT_EQ(alo, blo);
 	}
@@ -236,7 +238,7 @@ TEST(FIXMATH, INT128MUL) {
 		i64 ahi;
 		i64 alo = fixmath::_fm_mul128(a, b, ahi);
 		i64 bhi;
-		i64 blo = fixmath::_softmul128(a, b, bhi);
+		i64 blo = fixmath::_fm_softmul128(a, b, bhi);
 		EXPECT_EQ(ahi, bhi);
 		EXPECT_EQ(alo, blo);
 	}
@@ -246,7 +248,7 @@ TEST(FIXMATH, INT128MUL) {
 		i64 ahi;
 		i64 alo = fixmath::_fm_mul128(a, b, ahi);
 		i64 bhi;
-		i64 blo = fixmath::_softmul128(a, b, bhi);
+		i64 blo = fixmath::_fm_softmul128(a, b, bhi);
 		EXPECT_EQ(ahi, bhi);
 		EXPECT_EQ(alo, blo);
 	}
@@ -279,7 +281,7 @@ TEST(FIXMATH, INT128DIV) {
 			ubhi = 0;
 			ubrem = ua;
 		}
-		auto ublo = fixmath::_softudiv128(ubrem, ub, uc, &ubrem);
+		auto ublo = fixmath::_fm_softudiv128(ubrem, ub, uc, &ubrem);
 		if ((a ^ c) < 0) {
 			ubhi = ublo ? ~ubhi : 0 - ubhi;
 			ublo = 0 - ublo;
@@ -291,6 +293,65 @@ TEST(FIXMATH, INT128DIV) {
 		EXPECT_EQ(ra.lo, (i64)ublo);
 		EXPECT_EQ(arem, (i64)ubrem);
 	}
+}
+
+TEST(FIXMATH, UINT128DIV) {
+	constexpr u64 DIVISOR = 0xc90f'daa2'2168'c235;
+	u64 remainder = 0;
+
+	EXPECT_EQ(fixmath::_fm_udiv128(0, 123, 100, remainder), 1);
+	EXPECT_EQ(remainder, 23);
+
+	EXPECT_EQ(fixmath::_fm_udiv128(DIVISOR - 1, u64l::max(), DIVISOR, remainder), u64l::max());
+	EXPECT_EQ(remainder, DIVISOR - 1);
+}
+
+TEST(FIXMATH, HIGH_PRECISION_PIO4_REMAINDER) {
+	auto reduced = fixmath::_fm_rem_pio4<32>(u64{0});
+	EXPECT_EQ(reduced.remainder, 0);
+	EXPECT_EQ(reduced.quotient, 0);
+
+	reduced = fixmath::_fm_rem_pio4<32>(u64{1});
+	EXPECT_EQ(reduced.remainder, u64{1} << 32);
+	EXPECT_EQ(reduced.quotient, 0);
+
+	// The Q32.32 pi/4 constant is slightly below the Q0.64 constant, so it
+	// remains in octant zero. The next Q32.32 value crosses the boundary.
+	reduced = fixmath::_fm_rem_pio4<32>(u64{0xc90f'daa2});
+	EXPECT_EQ(reduced.remainder, 0xc90f'daa2'0000'0000);
+	EXPECT_EQ(reduced.quotient, 0);
+
+	reduced = fixmath::_fm_rem_pio4<32>(u64{0xc90f'daa3});
+	EXPECT_EQ(reduced.remainder, 0xde97'3dcb);
+	EXPECT_EQ(reduced.quotient, 1);
+
+	reduced = fixmath::_fm_rem_pio4<32>(u64{0x6'487e'd511});
+	EXPECT_EQ(reduced.remainder, 0xc90f'daa2'1622'b08d);
+	EXPECT_EQ(reduced.quotient, 7);
+
+	reduced = fixmath::_fm_rem_pio4<32>(u64{0x6'487e'd512});
+	EXPECT_EQ(reduced.remainder, 0xf4b9'ee58);
+	EXPECT_EQ(reduced.quotient, 8);
+
+	reduced = fixmath::_fm_rem_pio4<32>(static_cast<u64>(i64l::max()));
+	EXPECT_EQ(reduced.remainder, 0x3d78'4d71'9a0e'6e3a);
+	EXPECT_EQ(reduced.quotient, 0xa2f9'836e);
+
+	reduced = fixmath::_fm_rem_pio4<32>(u64{1} << 63);
+	EXPECT_EQ(reduced.remainder, 0x3d78'4d72'9a0e'6e3a);
+	EXPECT_EQ(reduced.quotient, 0xa2f9'836e);
+
+	const auto reduced_f16 = fixmath::_fm_rem_pio4<16>(static_cast<u64>(i64l::max()));
+	EXPECT_EQ(reduced_f16.remainder, 0x109e'20cf'a33a'43ec);
+	EXPECT_EQ(reduced_f16.quotient, 0xa2f9'836e'4e44);
+
+	const auto reduced_f8 = fixmath::_fm_rem_pio4<8>(static_cast<u32>(i32l::max()));
+	EXPECT_EQ(reduced_f8.remainder, 0x55b7'8d1a);
+	EXPECT_EQ(reduced_f8.quotient, 0xa2f9'83);
+
+	const auto reduced_f8_min = fixmath::_fm_rem_pio4<8>(u32{1} << 31);
+	EXPECT_EQ(reduced_f8_min.remainder, 0x56b7'8d1a);
+	EXPECT_EQ(reduced_f8_min.quotient, 0xa2f9'83);
 }
 
 TEST(FIXMATH, CAST) {

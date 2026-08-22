@@ -9,7 +9,7 @@ namespace fixmath {
 
 // reference from llvm compiler-rt
 // a fast 128bit / 64bit algorithm
-inline uint64_t _softudiv128(uint64_t u1, uint64_t u0, uint64_t v, uint64_t* r) {
+inline uint64_t _fm_softudiv128(uint64_t u1, uint64_t u0, uint64_t v, uint64_t* r) {
 	const unsigned n_udword_bits = 64;
 	const uint64_t b = (1ULL << (n_udword_bits / 2)); // Number base (32 bits)
 	uint64_t un1, un0;                                // Norm. dividend LSD's

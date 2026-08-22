@@ -39,14 +39,29 @@ inline uint64_t _fm_umul128(uint64_t a, uint64_t b, uint64_t& rhi) {
 #else
 
 inline int64_t _fm_mul128(int64_t a, int64_t b, int64_t& rhi) {
-	return _softmul128(a, b, rhi);
+	return _fm_softmul128(a, b, rhi);
 }
 
 inline uint64_t _fm_umul128(uint64_t a, uint64_t b, uint64_t& rhi) {
-	return _softumul128(a, b, rhi);
+	return _fm_softumul128(a, b, rhi);
 }
 
 #endif
+
+inline uint64_t _fm_udiv128(uint64_t dhi, uint64_t dlo, uint64_t divisor, uint64_t& remainder) {
+	FIXMATH_ASSERT(divisor != 0, "divisor must be nonzero");
+	FIXMATH_ASSERT(dhi < divisor, "128-bit quotient must fit 64 bits");
+#if FIXMATH_LINUX_X64
+	uint64_t quotient = 0;
+	remainder = dhi;
+	__asm__("divq %[v]" : "=a"(quotient), "=d"(remainder) : [v] "r"(divisor), "a"(dlo), "d"(remainder));
+	return quotient;
+#elif FIXMATH_WIN_X64 && FIXMATH_HAS_INTRIN_DIV
+	return ::_udiv128(dhi, dlo, divisor, &remainder);
+#else
+	return _fm_softudiv128(dhi, dlo, divisor, &remainder);
+#endif
+}
 
 struct _int128_s {
 	int64_t lo;
@@ -73,13 +88,7 @@ inline _int128_s _fm_div128(int64_t dhi, int64_t dlo, int64_t d, int64_t& rem) {
 		uqhi = 0;
 		urem = udhi;
 	}
-#if FIXMATH_LINUX_X64
-	__asm__("divq %[v]" : "=a"(uqlo), "=d"(urem) : [v] "r"(ud), "a"(udlo), "d"(urem));
-#elif FIXMATH_WIN_X64 && FIXMATH_HAS_INTRIN_DIV
-	uqlo = ::_udiv128(urem, udlo, ud, &urem);
-#else
-	uqlo = _softudiv128(urem, udlo, ud, &urem);
-#endif
+	uqlo = _fm_udiv128(urem, udlo, ud, urem);
 	if ((dhi ^ d) < 0) {
 		_fm_neg128(uqhi, uqlo);
 	}
@@ -210,13 +219,7 @@ inline _int128_s _fm_shl32div(int64_t a, int64_t b, int64_t& rem) {
 		uqhi = 0;
 		urem = rs32;
 	}
-#if FIXMATH_LINUX_X64
-	__asm__("divq %[v]" : "=a"(uqlo), "=d"(urem) : [v] "r"(absb), "a"(absa << 32), "d"(urem));
-#elif FIXMATH_WIN_X64 && FIXMATH_HAS_INTRIN_DIV
-	uqlo = ::_udiv128(urem, absa << 32, absb, &urem);
-#else
-	uqlo = _softudiv128(urem, absa << 32, absb, &urem);
-#endif
+	uqlo = _fm_udiv128(urem, absa << 32, absb, urem);
 	if ((a ^ b) < 0) {
 		_fm_neg128(uqhi, uqlo);
 	}
