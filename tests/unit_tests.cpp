@@ -591,7 +591,7 @@ TEST(FIXMATH, TAN_Q32_32) {
 	const Fix32 half(0.5);
 	EXPECT_EQ(fixmath::tan(-half), -fixmath::tan(half));
 	EXPECT_EQ(fixmath::tan(Fix32::pi() - half), -fixmath::tan(half));
-	EXPECT_EQ(fixmath::tan(Fix32::pi() + half), fixmath::tan(half));
+	EXPECT_LE(std::abs(fixmath::tan(Fix32::pi() + half).raw() - fixmath::tan(half).raw()), 2);
 	EXPECT_LE(std::abs(fixmath::tan(Fix32::two_pi() - half).raw() + fixmath::tan(half).raw()), 2);
 	EXPECT_LE(std::abs(fixmath::tan(Fix32::two_pi() + half).raw() - fixmath::tan(half).raw()), 2);
 	EXPECT_EQ(fixmath::tan(Fix32::half_pi()), Fix32::max_sat());
@@ -599,6 +599,24 @@ TEST(FIXMATH, TAN_Q32_32) {
 	EXPECT_EQ(fixmath::tan(Fix32::from_raw(Fix32::half_pi().raw() - 1)), Fix32::max_sat());
 	EXPECT_EQ(fixmath::tan(Fix32::from_raw(-Fix32::half_pi().raw() + 1)), Fix32::min_sat());
 	EXPECT_EQ(fixmath::tan(Fix32Ignore::half_pi()), Fix32Ignore::nan());
+}
+
+TEST(FIXMATH, TRIG_Q32_32_LARGE_RANGE_REDUCTION) {
+	// These inputs reduce to exactly 0.5 and 1.5 Q32.32 raw units.
+	constexpr i64 TIE_INPUT = 0x6487'ed51'10b4'611b;
+	EXPECT_EQ(fixmath::sin(Fix32::from_raw(TIE_INPUT)).raw(), 0);
+	EXPECT_EQ(fixmath::sin(Fix32::from_raw(TIE_INPUT + 1)).raw(), 2);
+	EXPECT_EQ(fixmath::sin(Fix32Zero::from_raw(TIE_INPUT + 1)).raw(), 1);
+
+	const Fix32 maximum = Fix32::from_raw(i64l::max());
+	EXPECT_LE(std::abs(fixmath::sin(maximum).raw() - i64{-4171745440}), 2);
+	EXPECT_LE(std::abs(fixmath::cos(maximum).raw() - i64{1021412777}), 2);
+	EXPECT_LE(std::abs(fixmath::tan(maximum).raw() - i64{-17541889656}), 32);
+
+	const Fix32 minimum = Fix32::from_raw(i64l::min());
+	EXPECT_LE(std::abs(fixmath::sin(minimum).raw() - i64{4171745439}), 2);
+	EXPECT_LE(std::abs(fixmath::cos(minimum).raw() - i64{1021412778}), 2);
+	EXPECT_LE(std::abs(fixmath::tan(minimum).raw() - i64{17541889638}), 32);
 }
 
 TEST(FIXMATH, TAN_KERNELS_Q32_32) {

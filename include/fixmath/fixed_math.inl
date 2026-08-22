@@ -131,29 +131,34 @@ template <FixedPolicy policy>
 fixed<policy> sin(fixed<policy> a) {
 	using fixed = fixed<policy>;
 	using raw_t = typename fixed::raw_t;
+	using uraw_t = typename fixed::uraw_t;
 	if constexpr (policy::strict_mode) {
 		if (FIXMATH_UNLIKELY(a.is_nan() || a.is_inf())) {
 			return fixed::nan();
 		}
 	}
 
-	const raw_t two_pi = fixed::two_pi().raw();
-	const raw_t pi = fixed::pi().raw();
+	const raw_t raw = a.raw();
+	const bool negative = raw < 0;
+	const uraw_t magnitude = negative ? uraw_t{0} - static_cast<uraw_t>(raw) : static_cast<uraw_t>(raw);
+	const auto [remainder64, quotient] = _fm_rem_pio4<fixed::FRACTION_BITS>(magnitude);
+	const raw_t remainder = static_cast<raw_t>(_fm_div2n_round<policy, fixed::FRACTION_BITS>(remainder64));
+	const uint32_t octant = static_cast<uint32_t>(quotient & 7);
+	const raw_t quarter_pi = fixed::quarter_pi().raw();
 	const raw_t half_pi = fixed::half_pi().raw();
-	raw_t reduced = a.raw() % two_pi;
-	bool negate = reduced < 0;
-	if (negate) {
-		reduced = -reduced;
-	}
-	if (reduced > pi) {
-		reduced = two_pi - reduced;
-		negate = !negate;
-	}
-	if (reduced > half_pi) {
-		reduced = pi - reduced;
+	raw_t reduced = 0;
+	if ((octant & 3) == 0) {
+		reduced = remainder;
+	} else if ((octant & 3) == 1) {
+		reduced = quarter_pi + remainder;
+	} else if ((octant & 3) == 2) {
+		reduced = half_pi - remainder;
+	} else {
+		reduced = quarter_pi - remainder;
 	}
 
 	const raw_t result = _fm_sincos<policy>(reduced, false);
+	const bool negate = negative != (octant >= 4);
 	return fixed::from_raw(negate ? -result : result);
 }
 
@@ -162,28 +167,33 @@ template <FixedPolicy policy>
 fixed<policy> cos(fixed<policy> a) {
 	using fixed = fixed<policy>;
 	using raw_t = typename fixed::raw_t;
+	using uraw_t = typename fixed::uraw_t;
 	if constexpr (policy::strict_mode) {
 		if (FIXMATH_UNLIKELY(a.is_nan() || a.is_inf())) {
 			return fixed::nan();
 		}
 	}
 
-	const raw_t two_pi = fixed::two_pi().raw();
-	const raw_t pi = fixed::pi().raw();
+	const raw_t raw = a.raw();
+	const uraw_t magnitude = raw < 0 ? uraw_t{0} - static_cast<uraw_t>(raw) : static_cast<uraw_t>(raw);
+	const auto [remainder64, quotient] = _fm_rem_pio4<fixed::FRACTION_BITS>(magnitude);
+	const raw_t remainder = static_cast<raw_t>(_fm_div2n_round<policy, fixed::FRACTION_BITS>(remainder64));
+	const uint32_t octant = static_cast<uint32_t>(quotient & 7);
+	const raw_t quarter_pi = fixed::quarter_pi().raw();
 	const raw_t half_pi = fixed::half_pi().raw();
-	raw_t reduced = a.raw() % two_pi;
-	if (reduced < 0) {
-		reduced = -reduced;
-	}
-	if (reduced > pi) {
-		reduced = two_pi - reduced;
-	}
-	bool negate = reduced > half_pi;
-	if (negate) {
-		reduced = pi - reduced;
+	raw_t reduced = 0;
+	if ((octant & 3) == 0) {
+		reduced = remainder;
+	} else if ((octant & 3) == 1) {
+		reduced = quarter_pi + remainder;
+	} else if ((octant & 3) == 2) {
+		reduced = half_pi - remainder;
+	} else {
+		reduced = quarter_pi - remainder;
 	}
 
 	const raw_t result = _fm_sincos<policy>(reduced, true);
+	const bool negate = octant >= 2 && octant < 6;
 	return fixed::from_raw(negate ? -result : result);
 }
 
@@ -233,23 +243,32 @@ template <FixedPolicy policy>
 fixed<policy> tan(fixed<policy> a) {
 	using fixed = fixed<policy>;
 	using raw_t = typename fixed::raw_t;
+	using uraw_t = typename fixed::uraw_t;
 	if constexpr (policy::strict_mode) {
 		if (FIXMATH_UNLIKELY(a.is_nan() || a.is_inf())) {
 			return fixed::nan();
 		}
 	}
 
-	const raw_t pi = fixed::pi().raw();
+	const raw_t raw = a.raw();
+	const bool negative = raw < 0;
+	const uraw_t magnitude = negative ? uraw_t{0} - static_cast<uraw_t>(raw) : static_cast<uraw_t>(raw);
+	const auto [remainder64, quotient] = _fm_rem_pio4<fixed::FRACTION_BITS>(magnitude);
+	const raw_t remainder = static_cast<raw_t>(_fm_div2n_round<policy, fixed::FRACTION_BITS>(remainder64));
+	const uint32_t quadrant = static_cast<uint32_t>(quotient & 3);
+	const raw_t quarter_pi = fixed::quarter_pi().raw();
 	const raw_t half_pi = fixed::half_pi().raw();
-	raw_t reduced = a.raw() % pi;
-	bool negate = reduced < 0;
-	if (negate) {
-		reduced = -reduced;
+	raw_t reduced = 0;
+	if (quadrant == 0) {
+		reduced = remainder;
+	} else if (quadrant == 1) {
+		reduced = quarter_pi + remainder;
+	} else if (quadrant == 2) {
+		reduced = half_pi - remainder;
+	} else {
+		reduced = quarter_pi - remainder;
 	}
-	if (reduced > half_pi) {
-		reduced = pi - reduced;
-		negate = !negate;
-	}
+	const bool negate = negative != (quadrant >= 2);
 
 	if (FIXMATH_UNLIKELY(reduced == half_pi)) {
 		if constexpr (policy::strict_mode) {
@@ -262,7 +281,6 @@ fixed<policy> tan(fixed<policy> a) {
 	}
 
 	constexpr raw_t DIRECT_BOUNDARY = 1975684956LL;
-	const raw_t quarter_pi = fixed::quarter_pi().raw();
 	const raw_t reciprocal_boundary = half_pi - DIRECT_BOUNDARY;
 	raw_t result = 0;
 	if (reduced <= DIRECT_BOUNDARY) {
@@ -285,16 +303,16 @@ fixed<policy> tan(fixed<policy> a) {
 		const fixed residual = fixed::from_raw(_fm_cot_residual_kernel<policy>(distance));
 		result = (reciprocal + residual).raw();
 	}
-	const fixed magnitude = fixed::from_raw(result);
+	const fixed result_magnitude = fixed::from_raw(result);
 	if (!negate) {
-		return magnitude;
+		return result_magnitude;
 	}
 	if constexpr (policy::saturation_mode) {
-		if (FIXMATH_UNLIKELY(magnitude == fixed::max_sat())) {
+		if (FIXMATH_UNLIKELY(result_magnitude == fixed::max_sat())) {
 			return fixed::min_sat();
 		}
 	}
-	return -magnitude;
+	return -result_magnitude;
 }
 
 template <FixedPolicy policy>
