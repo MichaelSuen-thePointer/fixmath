@@ -140,7 +140,7 @@ fixed<policy> sin(fixed<policy> a) {
 
 	const raw_t raw = a.raw();
 	const bool negative = raw < 0;
-	const uraw_t magnitude = negative ? uraw_t{0} - static_cast<uraw_t>(raw) : static_cast<uraw_t>(raw);
+	const uraw_t magnitude = _fm_absraw(raw);
 	const auto [remainder64, quotient] = _fm_rem_pio4<fixed::FRACTION_BITS>(magnitude);
 	const raw_t remainder = static_cast<raw_t>(_fm_div2n_round<policy, fixed::FRACTION_BITS>(remainder64));
 	const uint32_t octant = static_cast<uint32_t>(quotient & 7);
@@ -175,7 +175,7 @@ fixed<policy> cos(fixed<policy> a) {
 	}
 
 	const raw_t raw = a.raw();
-	const uraw_t magnitude = raw < 0 ? uraw_t{0} - static_cast<uraw_t>(raw) : static_cast<uraw_t>(raw);
+	const uraw_t magnitude = _fm_absraw(raw);
 	const auto [remainder64, quotient] = _fm_rem_pio4<fixed::FRACTION_BITS>(magnitude);
 	const raw_t remainder = static_cast<raw_t>(_fm_div2n_round<policy, fixed::FRACTION_BITS>(remainder64));
 	const uint32_t octant = static_cast<uint32_t>(quotient & 7);
@@ -252,7 +252,7 @@ fixed<policy> tan(fixed<policy> a) {
 
 	const raw_t raw = a.raw();
 	const bool negative = raw < 0;
-	const uraw_t magnitude = negative ? uraw_t{0} - static_cast<uraw_t>(raw) : static_cast<uraw_t>(raw);
+	const uraw_t magnitude = _fm_absraw(raw);
 	const auto [remainder64, quotient] = _fm_rem_pio4<fixed::FRACTION_BITS>(magnitude);
 	const raw_t remainder = static_cast<raw_t>(_fm_div2n_round<policy, fixed::FRACTION_BITS>(remainder64));
 	const uint32_t quadrant = static_cast<uint32_t>(quotient & 3);

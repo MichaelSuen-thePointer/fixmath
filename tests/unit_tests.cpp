@@ -452,6 +452,15 @@ TEST(FIXMATH, MAX_FRACTION_BITS) {
 	check_max_fraction_bits<Fix63Even64Strict>();
 }
 
+TEST(FIXMATH, ABS_RAW) {
+	static_assert(_fm_absraw(std::int8_t{0}) == std::uint8_t{0});
+	static_assert(_fm_absraw(std::int8_t{42}) == std::uint8_t{42});
+	static_assert(_fm_absraw(std::int8_t{-42}) == std::uint8_t{42});
+	static_assert(_fm_absraw(std::numeric_limits<std::int8_t>::min()) == std::uint8_t{128});
+	static_assert(_fm_absraw(i32l::min()) == u32{1} << 31);
+	static_assert(_fm_absraw(i64l::min()) == u64{1} << 63);
+}
+
 TEST(FIXMATH, HIGH_FRACTION_64BIT_PATHS) {
 	const auto zero_half = Fix62Zero64Sat::from_raw(Fix62Zero64Sat::URATIO >> 1);
 	const auto even_half = Fix62Even64Sat::from_raw(Fix62Even64Sat::URATIO >> 1);

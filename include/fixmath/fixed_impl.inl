@@ -14,6 +14,13 @@
 
 namespace fixmath {
 
+template <FixedUnderlying raw_t>
+constexpr ::std::make_unsigned_t<raw_t> _fm_absraw(raw_t value) {
+	using uraw_t = ::std::make_unsigned_t<raw_t>;
+	const uraw_t result = static_cast<uraw_t>(value);
+	return value < 0 ? uraw_t{0} - result : result;
+}
+
 template <FixedPolicy policy>
 constexpr fixed<policy> fixed<policy>::two_pi()
 	requires(INTEGER_BITS >= 4)
@@ -390,14 +397,8 @@ constexpr fixed<policy> operator/(fixed<policy> a, fixed<policy> b) {
 		qhi = qlo >> 63;
 	}
 	if constexpr (policy::rounding) {
-		uint64_t abs_rem = rem;
-		uint64_t abs_b = b.raw();
-		if (rem < 0) {
-			abs_rem = uint64_t{0} - abs_rem;
-		}
-		if (b.raw() < 0) {
-			abs_b = uint64_t{0} - abs_b;
-		}
+		const uint64_t abs_rem = _fm_absraw(rem);
+		const uint64_t abs_b = _fm_absraw(b.raw());
 		bool quo_nonneg = (a.raw() < 0) == (b.raw() < 0);
 		int64_t sign = quo_nonneg ? 1 : -1;
 		int64_t carry = (abs_rem * 2 > abs_b ? 1 : abs_rem * 2 == abs_b ? qlo & 1 : 0) * sign;
